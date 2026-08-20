@@ -1,0 +1,57 @@
+{
+  "name": "x64dbg-mcp-server",
+  "version": "2.6.0",
+  "description": "MCP server for x64dbg debugger - 50+ mega-tools with comprehensive security hardening and advanced binary exploitation capabilities for AI-powered reverse engineering, exploit development, and malware analysis",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "x64dbg-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "mcp",
+    "x64dbg",
+    "debugger",
+    "reverse-engineering",
+    "model-context-protocol",
+    "claude",
+    "ai-debugging",
+    "exploit-development",
+    "binary-analysis",
+    "fuzzing",
+    "symbolic-execution"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bromoket/x64dbg_mcp.git",
+    "directory": "server"
+  },
+  "homepage": "https://github.com/bromoket/x64dbg_mcp#readme",
+  "bugs": {
+    "url": "https://github.com/bromoket/x64dbg_mcp/issues"
+  },
+  "mcpName": "io.github.bromoket/x64dbg",
+  "author": "bromo",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
