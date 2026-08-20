@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_cpu_vuln_routes(c_http_router& router) {
-    router.post("/api/cpu_vuln/read_cpuid_vulnerability_leaves", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cpu_vuln/read_cpuid_vulnerability_leaves", [](const s_http_request& req) {
         json result;
         int info[4] = {};
         __cpuid(info,0); result["max_leaf"] = info[0];
@@ -32,9 +32,9 @@ void register_cpu_vuln_routes(c_http_router& router) {
             {"TAA","TSX Async Abort — mitigated by TAA_NO or TSX_CTRL"},
             {"SRBDS","Special Register Buffer Data Sampling — CPU RNG data leak across cores"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cpu_vuln/check_arch_capabilities_msr", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cpu_vuln/check_arch_capabilities_msr", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuidex(info,7,0);
@@ -53,9 +53,9 @@ void register_cpu_vuln_routes(c_http_router& router) {
             {"bit31","PBRSB_NO — PBS Return Stack Buffer immune"}
         };
         result["note"] = "Requires RDMSR 0x10A in kernel mode. Use x64dbg kernel debug context or driver.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cpu_vuln/assess_exploit_mitigations", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cpu_vuln/assess_exploit_mitigations", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuidex(info,7,0);
@@ -82,7 +82,8 @@ void register_cpu_vuln_routes(c_http_router& router) {
             result["kpti_query_status"] = (int)st;
             if (NT_SUCCESS(st) && ret>=4) result["kpti_flags"] = *(DWORD*)buf;
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

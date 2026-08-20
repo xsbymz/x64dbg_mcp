@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_smt_solver_bridge_routes(c_http_router& router) {
-    router.post("/api/smt_solver/format_bitvector_formula", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/smt_solver/format_bitvector_formula", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string regName = body.value("target_register", "rax");
         std::string expr = body.value("expression", "(xor (bvand rax 0xFF) 0x5A)");
@@ -20,10 +20,10 @@ void register_smt_solver_bridge_routes(c_http_router& router) {
             "(assert (= (bvxor (bvand " + regName + " (_ bv255 64)) (_ bv90 64)) target_val))\n"
             "(check-sat)\n"
             "(get-model)\n";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/smt_solver/generate_crackme_key_constraints", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/smt_solver/generate_crackme_key_constraints", [](const s_http_request& req) {
         json result;
         result["smt2_crackme_template"] =
             "; Standard Crackme Keygen / Symbolic Constraint satisfaction template\n"
@@ -38,7 +38,8 @@ void register_smt_solver_bridge_routes(c_http_router& router) {
             "(assert (= (bvxor (bvadd key_byte_0 key_byte_1) (_ bv170 8)) (_ bv222 8)))\n"
             "(check-sat)\n"
             "(get-value (key_byte_0 key_byte_1))\n";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

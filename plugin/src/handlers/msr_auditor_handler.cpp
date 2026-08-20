@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
@@ -7,7 +7,7 @@ using json = nlohmann::json;
 namespace handlers {
 void register_msr_auditor_routes(c_http_router& router) {
 
-    router.post("/api/msr/read_critical_msrs", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/msr/read_critical_msrs", [](const s_http_request& req) {
         json result;
         result["msr_reference"] = {
             {"0xC0000080","IA32_EFER — Extended Feature Enable: LME(bit8)=LongMode, NXE(bit11)=No-Execute Enable, SVME(bit12)=VMX"},
@@ -41,10 +41,10 @@ void register_msr_auditor_routes(c_http_router& router) {
         result["ibrs_ibpb_supported"] = (cpuInfo[3] >> 26) & 1;
         result["stibp_supported"] = (cpuInfo[3] >> 27) & 1;
         result["ssbd_supported"] = (cpuInfo[3] >> 31) & 1;
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/msr/detect_lstar_hook", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/msr/detect_lstar_hook", [](const s_http_request& req) {
         json result;
         result["detection_method"] = {
             {"step1","Read LSTAR MSR (0xC0000082) value via RDMSR in kernel context"},
@@ -56,10 +56,10 @@ void register_msr_auditor_routes(c_http_router& router) {
         result["expected_target"] = "nt!KiSystemCall64 (ntoskrnl.exe text section)";
         result["known_rootkits_using_lstar"] = {"Azazel","Custom kernel backdoors","Nation-state implants (various)"};
         result["bypass_note"] = "Some rootkits keep LSTAR pointing to KiSystemCall64 but patch the first few instructions (inline hook) to redirect before dispatch table lookup";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/msr/audit_mitigation_msrs", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/msr/audit_mitigation_msrs", [](const s_http_request& req) {
         json result;
         // Read arch capabilities via CPUID leaf 7
         int cpuInfo[4] = {};
@@ -80,7 +80,8 @@ void register_msr_auditor_routes(c_http_router& router) {
             {"bit1","STIBP — Single Thread Indirect Branch Predictor isolation"},
             {"bit2","SSBD — Speculative Store Bypass Disable"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

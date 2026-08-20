@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_ndr_format_decoder_routes(c_http_router& router) {
-    router.post("/api/ndr_format/decode_type_format_string", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ndr_format/decode_type_format_string", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string hexFormat = body.value("format_string_hex", "");
         json result;
@@ -33,10 +33,10 @@ void register_ndr_format_decoder_routes(c_http_router& router) {
             {"0x18", "FC_CPSTRUCT — Conformant pointer structure"},
             {"0x1B", "FC_CARRAY — Conformant 1D array"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/ndr_format/parse_rpc_proc_format", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/ndr_format/parse_rpc_proc_format", [](const s_http_request& req) {
         json result;
         result["ndr_proc_format_header"] = {
             {"HandleType", "Explicit (FC_BIND_PRIMITIVE, FC_BIND_GENERIC, FC_BIND_CONTEXT) vs Implicit"},
@@ -47,7 +47,8 @@ void register_ndr_format_decoder_routes(c_http_router& router) {
             {"ExplicitHandleOffset", "Offset to binding handle parameter"},
             {"ClientCorrHint", "Correlation hint byte count for complex arrays"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

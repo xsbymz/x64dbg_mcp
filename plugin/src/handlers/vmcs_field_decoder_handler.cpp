@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_vmcs_field_decoder_routes(c_http_router& router) {
-    router.post("/api/vmcs_decoder/decode_field_encoding", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/vmcs_decoder/decode_field_encoding", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         uint32_t encoding = 0;
         std::string encStr = body.value("encoding", "0x00004800");
@@ -26,10 +26,10 @@ void register_vmcs_field_decoder_routes(c_http_router& router) {
         result["field_index"] = index;
         result["access_type"] = accessType == 0 ? "Full 32/64-bit access" : "High 32-bit access";
 
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/vmcs_decoder/decode_exit_reason", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/vmcs_decoder/decode_exit_reason", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         uint32_t basicReason = body.value("exit_reason", 10); // 10 = CPUID
         json result;
@@ -62,7 +62,8 @@ void register_vmcs_field_decoder_routes(c_http_router& router) {
 
         auto it = reasonMap.find(basicReason);
         result["reason_name"] = it != reasonMap.end() ? it->second : "UNKNOWN_EXIT_REASON";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

@@ -1,21 +1,21 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_loldrivers_scanner_routes(c_http_router& router) {
-    router.post("/api/loldriver/scan_loaded_drivers", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/loldriver/scan_loaded_drivers", [](const s_http_request& req) {
         json result;
         result["byovd_attack_concept"] = {
             "Bring Your Own Vulnerable Driver (BYOVD) drops a legitimate, Microsoft-signed driver containing known kernel Read/Write primitives",
             "Adversary loads the signed driver to bypass Driver Signature Enforcement (DSE)",
             "Exploits IOCTLs to disable EDR kernel callbacks, clear CI!g_CiOptions, or terminate protected processes (PPL)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/loldriver/match_against_known_vulnerable", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/loldriver/match_against_known_vulnerable", [](const s_http_request& req) {
         json result;
         result["notable_vulnerable_drivers"] = {
             {"RTCore64.sys", "Micro-Star MSI Afterburner driver — CVE-2019-16098 (Arbitrary kernel R/W via IOCTL 0x80002048)"},
@@ -26,16 +26,17 @@ void register_loldrivers_scanner_routes(c_http_router& router) {
             {"mhyprot2.sys", "Genshin Impact anti-cheat driver abused by ransomware to kill antivirus processes"}
         };
         result["database_reference"] = "https://www.loldrivers.io/ API matching based on SHA256 / Authenticode signer certificate";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/loldriver/assess_byovd_risk", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/loldriver/assess_byovd_risk", [](const s_http_request& req) {
         json result;
         result["mitigation_status"] = {
             {"Driver_Blocklist", "Microsoft Vulnerable Driver Blocklist (HVCI enabled by default in Windows 11)"},
             {"WDAC_Policy", "Windows Defender Application Control policy enforcing driver hash blacklisting"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

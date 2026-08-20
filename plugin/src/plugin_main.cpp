@@ -63,7 +63,7 @@ namespace handlers {
     void register_audit_routes(c_http_router& router);
     void register_session_routes(c_http_router& router);
     void register_corruption_routes(c_http_router& router);
-    void register_primitives_routes(c_http_router& router);
+    void register_primitive_routes(c_http_router& router);
     void register_obfuscation_routes(c_http_router& router);
     void register_control_flow_routes(c_http_router& router);
     void register_antidebug_advanced_routes(c_http_router& router);
@@ -106,6 +106,10 @@ namespace handlers {
     void register_encoding_detector_routes(c_http_router& router);
     void register_compression_detector_routes(c_http_router& router);
     void register_exploit_scoring_routes(c_http_router& router);
+    void register_exploit_primitives_routes(c_http_router& router);
+    void register_vuln_pattern_handler_routes(c_http_router& router);
+    void register_binary_diff_routes(c_http_router& router);
+    void register_stack_canary_routes(c_http_router& router);
     void register_vuln_chain_routes(c_http_router& router);
     void register_code_similarity_routes(c_http_router& router);
     // Enterprise Advanced RE & Hardware Handlers
@@ -704,7 +708,7 @@ void register_all_routes(c_http_router& router) {
     handlers::register_audit_routes(router);
     handlers::register_session_routes(router);
     handlers::register_corruption_routes(router);
-    handlers::register_primitives_routes(router);
+    handlers::register_primitive_routes(router);
     handlers::register_obfuscation_routes(router);
     handlers::register_control_flow_routes(router);
     handlers::register_antidebug_advanced_routes(router);
@@ -747,6 +751,10 @@ void register_all_routes(c_http_router& router) {
     handlers::register_encoding_detector_routes(router);
     handlers::register_compression_detector_routes(router);
     handlers::register_exploit_scoring_routes(router);
+    handlers::register_exploit_primitives_routes(router);
+    handlers::register_vuln_pattern_handler_routes(router);
+    handlers::register_binary_diff_routes(router);
+    handlers::register_stack_canary_routes(router);
     handlers::register_vuln_chain_routes(router);
     handlers::register_code_similarity_routes(router);
     // Enterprise Advanced RE & Hardware Handlers

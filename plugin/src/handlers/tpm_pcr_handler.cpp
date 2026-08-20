@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <tbs.h>
 #pragma comment(lib, "tbs.lib")
@@ -8,7 +8,7 @@ using json = nlohmann::json;
 namespace handlers {
 void register_tpm_pcr_routes(c_http_router& router) {
 
-    router.post("/api/tpm/read_pcr_banks", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/tpm/read_pcr_banks", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body=json::object(); }
         json result;
         result["pcr_reference"] = {
@@ -32,26 +32,19 @@ void register_tpm_pcr_routes(c_http_router& router) {
         };
         // Open TPM context
         TBS_HCONTEXT hCtx = 0;
-        TBS_CONTEXT_PARAMS2 params = {TBS_CONTEXT_VERSION_TWO, {0}, 1};
+        TBS_CONTEXT_PARAMS2 params = {};
+        params.version = TBS_CONTEXT_VERSION_TWO;
         HRESULT hr = Tbsi_Context_Create((PCTBS_CONTEXT_PARAMS)&params, &hCtx);
         result["tpm_context_opened"] = SUCCEEDED(hr);
         result["tpm_hr"] = (int)hr;
         if (SUCCEEDED(hr)) {
-            // Try to get TPM device info
-            TPM_DEVICE_INFO devInfo = {};
-            hr = Tbsi_GetDeviceInfo(sizeof(devInfo), &devInfo);
-            if (SUCCEEDED(hr)) {
-                result["tpm_version"] = devInfo.tpmVersion;
-                result["interface_type"] = (int)devInfo.interfaceType;
-                result["implementation"] = (int)devInfo.tpmImpRevision;
-            }
             Tbsip_Context_Close(hCtx);
         }
         result["read_pcr_strategy"] = "Send TPM2_CC_PCR_Read command via Tbsip_Submit_Command to read PCR bank values";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/tpm/get_ek_certificate", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/tpm/get_ek_certificate", [](const s_http_request& req) {
         json result;
         result["ek_certificate"] = {
             {"location","NVRAM index 0x01C00002 (RSA-2048 EK cert) or 0x01C00014 (ECC-256)"},
@@ -68,10 +61,10 @@ void register_tpm_pcr_routes(c_http_router& router) {
         HCERTSTORE hStore = CertOpenSystemStoreA(0, "MY");
         result["cert_store_opened"] = (hStore != nullptr);
         if (hStore) { CertCloseStore(hStore,0); }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/tpm/analyze_measurement_log", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/tpm/analyze_measurement_log", [](const s_http_request& req) {
         json result;
         result["measurement_log"] = {
             {"location","C:\\Windows\\Logs\\MeasuredBoot\\ (Windows TCG log)"},
@@ -100,7 +93,8 @@ void register_tpm_pcr_routes(c_http_router& router) {
             FindClose(h);
         }
         result["log_count"] = result["log_files"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

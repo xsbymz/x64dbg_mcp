@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <tlhelp32.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_kthread_ethread_routes(c_http_router& router) {
-    router.post("/api/kthread/walk_all_threads", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/kthread/walk_all_threads", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -48,10 +48,10 @@ void register_kthread_ethread_routes(c_http_router& router) {
             {"Win32Thread", "Pointer to win32kthread desktop GUI state"},
             {"WaitBlockList", "Array of KWAIT_BLOCK structures indicating synchronization objects waited on"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/kthread/dump_thread_fields", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/kthread/dump_thread_fields", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD tid = body.value("tid", (DWORD)GetCurrentThreadId());
         json result;
@@ -66,10 +66,10 @@ void register_kthread_ethread_routes(c_http_router& router) {
             {"KeyedWaitSemaphore", "Fast user-mode synchronization semaphore"},
             {"AlpcMessageId", "Active ALPC communication message tracker"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/kthread/detect_apc_anomalies", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/kthread/detect_apc_anomalies", [](const s_http_request& req) {
         json result;
         result["apc_anomaly_heuristics"] = {
             "1. KernelApcPending=1 with empty ApcListHead indicates unlinked/stealth APC execution",
@@ -81,7 +81,8 @@ void register_kthread_ethread_routes(c_http_router& router) {
             "Check for ETW Threat-Intelligence Kernel APC injection events",
             "Validate ApcState.Process matches owning EPROCESS"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

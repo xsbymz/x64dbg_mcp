@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_rtti_graph_analyzer_routes(c_http_router& router) {
-    router.post("/api/rtti_graph/build_hierarchy_graph", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/rtti_graph/build_hierarchy_graph", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string vtableAddr = body.value("vtable_address", "");
         json result;
@@ -26,16 +26,17 @@ void register_rtti_graph_analyzer_routes(c_http_router& router) {
                 {"pBaseClassArray", "RVA of array of _RTTIBaseClassDescriptor pointers"}
             }}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/rtti_graph/demangle_type_names", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/rtti_graph/demangle_type_names", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string mangledName = body.value("mangled_name", ".?AVruntime_error@std@@");
         json result;
         result["mangled_name"] = mangledName;
         result["demangling_rule"] = "Strip prefix '.?AV' and suffix '@@', resolve namespaces separated by '@' in reverse order";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

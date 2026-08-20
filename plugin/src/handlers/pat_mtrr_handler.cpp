@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_pat_mtrr_routes(c_http_router& router) {
-    router.post("/api/mtrr/read_all", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/mtrr/read_all", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuid(info,1);
@@ -30,9 +30,9 @@ void register_pat_mtrr_routes(c_http_router& router) {
             "Map physical MMIO regions as WC for fast DMA-style memory access without going through OS",
             "Fingerprinting: UC regions in unexpected physical ranges = potential rootkit MMIO mapping"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/mtrr/detect_suspicious_uc_regions", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/mtrr/detect_suspicious_uc_regions", [](const s_http_request& req) {
         json result;
         result["suspicious_uc_patterns"] = {
             "UC regions covering RAM (not MMIO) ranges suggest rootkit disabling cache for stealth",
@@ -46,9 +46,9 @@ void register_pat_mtrr_routes(c_http_router& router) {
             {"PCIe_BARs","PCI Base Address Registers — device MMIO, varies by hardware"}
         };
         result["detection_approach"] = "Read IA32_MTRRCAP (count), then IA32_MTRR_PHYSBASEn (base+type) and IA32_MTRR_PHYSMASKn (mask+valid) for each variable MTRR. Identify type=0 (UC) regions covering non-MMIO physical RAM.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/pat/read_entry_table", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/pat/read_entry_table", [](const s_http_request& req) {
         json result;
         result["pat_msr"] = "0x277 (IA32_PAT) — 8 entries, 3 bits each, maps PTE.PAT/PCD/PWT bits to memory type";
         result["default_pat"] = {
@@ -66,7 +66,8 @@ void register_pat_mtrr_routes(c_http_router& router) {
             "JIT engines set PTE.PWT/PCD for WRITE+EXECUTE: PAT manipulation can make JIT pages different cacheability",
             "Hypervisor attack: modify EPT PAT-like bits to change guest page cacheability without guest knowing"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

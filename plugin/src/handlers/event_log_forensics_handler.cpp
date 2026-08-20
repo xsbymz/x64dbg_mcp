@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_event_log_forensics_routes(c_http_router& router) {
-    router.post("/api/evtx/parse_log_file", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/evtx/parse_log_file", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string logPath = body.value("log_path", "C:\\Windows\\System32\\winevt\\Logs\\Security.evtx");
         json result;
@@ -20,10 +20,10 @@ void register_event_log_forensics_routes(c_http_router& router) {
             {"MajorVersion", "3 (Windows Vista through 11)"},
             {"Flags", "1 = Dirty / In Use, 0 = Cleanly closed"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/evtx/detect_sequence_gaps", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/evtx/detect_sequence_gaps", [](const s_http_request& req) {
         json result;
         result["gap_analysis_methodology"] = {
             "1. Read all EventRecord headers sequentially across chunks (ElfChnk magic 0x656C6643686E6B00)",
@@ -31,10 +31,10 @@ void register_event_log_forensics_routes(c_http_router& router) {
             "3. Verify sequence continuity: Record[N+1].ID == Record[N].ID + 1",
             "4. Flag any sequence jump (Record[N+1].ID > Record[N].ID + 1) as intentional anti-forensic record deletion"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/evtx/find_clearing_events", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/evtx/find_clearing_events", [](const s_http_request& req) {
         json result;
         result["audit_clearing_event_ids"] = {
             {"1102", "The audit log was cleared (Security Log — logged by Local Security Authority)"},
@@ -42,7 +42,8 @@ void register_event_log_forensics_routes(c_http_router& router) {
             {"1100", "The event logging service has shut down"},
             {"7034", "The Windows Event Log service terminated unexpectedly (crash induced to stop logging)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

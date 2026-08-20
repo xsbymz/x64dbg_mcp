@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_registry_hive_routes(c_http_router& router) {
-    router.post("/api/reg_hive/parse_hive_file", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/reg_hive/parse_hive_file", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string hivePath = body.value("hive_path", "C:\\Windows\\System32\\config\\SAM");
         json result;
@@ -18,10 +18,10 @@ void register_registry_hive_routes(c_http_router& router) {
             {"RootKeyOffset", "Offset to root named key cell ('nk' record)"},
             {"HiveBinsDataSize", "Total size of hive bins data allocated in 4096-byte pages"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/reg_hive/extract_sam_hashes", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/reg_hive/extract_sam_hashes", [](const s_http_request& req) {
         json result;
         result["sam_extraction_algorithm"] = {
             "1. Read 'SYSTEM' hive -> parse ControlSet001\\Control\\Lsa\\JD, Skew1, GBG, Data keys -> compute SysKey (BootKey)",
@@ -30,17 +30,18 @@ void register_registry_hive_routes(c_http_router& router) {
             "4. Decrypt 'V' value NT/LM hash blobs using RID-derived hash key to obtain user NTLM hashes",
             "5. Bypasses live LSASS memory access entirely — works on locked / offline disk images"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/reg_hive/read_lsa_secrets_offline", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/reg_hive/read_lsa_secrets_offline", [](const s_http_request& req) {
         json result;
         result["lsa_secrets_targets"] = {
             {"$SECURITY\\Policy\\Secrets\\$MACHINE.ACC", "Active Directory domain machine account password"},
             {"$SECURITY\\Policy\\Secrets\\DPAPI_SYSTEM", "System-wide DPAPI master encryption key"},
             {"$SECURITY\\Policy\\Secrets\\_SC_ServiceName", "Service account plaintext passwords"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

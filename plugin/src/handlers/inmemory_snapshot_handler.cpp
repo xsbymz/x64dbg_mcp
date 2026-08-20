@@ -19,7 +19,8 @@ void register_inmemory_snapshot_routes(c_http_router& router) {
         }
 
         duint cip = bridge.get_cip();
-        duint csp = bridge.get_csp();
+        auto reg_dump = bridge.get_register_dump();
+        duint csp = reg_dump.has_value() ? reg_dump->regcontext.csp : 0;
 
         return s_http_response::ok({
             {"checkpoint_id", 1},

@@ -10,95 +10,71 @@ const CommonParams = {
 
 export function registerVulnHuntTools(server: McpServer) {
   server.tool(
-    'vulnhunt_format_string',
-    'Scan a module for format string vulnerability candidates. ' +
-    'Finds calls to printf/sprintf/wprintf/DbgPrint where the format argument ' +
-    'does not appear to be a constant string literal (potential user-controlled input). ' +
-    'Returns {address, instruction, severity, confidence} per finding.',
+    'vulnhunt_scan_patterns',
+    'Scan a module for vulnerability patterns: unsafe functions, format strings, heap issues, and stack canary presence.',
     CommonParams,
     async ({ module, limit }) => {
-      const data = await httpClient.post('/api/vulnhunt/format_string_scan', { module, limit });
+      const data = await httpClient.post('/api/vuln/scan_patterns', { module, limit });
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     }
   );
 
   server.tool(
-    'vulnhunt_stack_frames',
-    'Scan a module for functions with dangerously large stack frames. ' +
-    'Flags "sub rsp, N" prologues where N >= threshold, and dynamic alloca/VLA patterns. ' +
-    'Large frames can be exploited via stack overflow or are indicators of unsafe local buffers.',
+    'vulnhunt_buffer_overflow',
+    'Check a specific function for buffer overflow candidates: unsafe strcpy/strcat/sprintf, missing length checks.',
     {
-      ...CommonParams,
-      threshold: z.number().int().min(64).optional().default(4096)
-                  .describe('Minimum frame size (bytes) to flag as suspicious'),
+      function: z.string().describe('Function name or address to analyze')
     },
-    async ({ module, limit, threshold }) => {
-      const data = await httpClient.post('/api/vulnhunt/stack_frame_scan', {
-        module, limit, threshold,
-      });
+    async ({ function: func }) => {
+      const data = await httpClient.post('/api/vuln/check_buffer_overflow', { function: func });
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'vulnhunt_format_string',
+    'Check a specific function for format string vulnerabilities: printf-family calls with non-literal format.',
+    {
+      function: z.string().describe('Function name or address to analyze')
+    },
+    async ({ function: func }) => {
+      const data = await httpClient.post('/api/vuln/check_format_string', { function: func });
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     }
   );
 
   server.tool(
     'vulnhunt_integer_overflow',
-    'Scan for integer overflow candidates before size-based allocations. ' +
-    'Detects patterns like: imul/mul/shl/add instruction within 8 instructions before ' +
-    'a call to malloc/HeapAlloc/VirtualAlloc/memcpy. ' +
-    'These patterns can lead to under-allocated buffers followed by heap overflow.',
-    CommonParams,
-    async ({ module, limit }) => {
-      const data = await httpClient.post('/api/vulnhunt/overflow_scan', { module, limit });
-      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    'vulnhunt_heap_spray',
-    'Detect heap spray patterns by analyzing the live heap allocation map. ' +
-    'Flags groups of N or more allocations of the same size, especially those ' +
-    'filled with NOP sleds (0x90), shellcode fill bytes (0x0D, 0x41), or other patterns. ' +
-    'Requires an active debug session (not necessarily paused).',
+    'Check a specific function for integer overflow candidates before size-based allocations.',
     {
-      pattern_threshold: z.number().int().min(5).optional().default(50)
-                          .describe('Minimum count of same-size allocations to flag as spray'),
-      size_bucket_min:   z.number().int().min(16).optional().default(256)
-                          .describe('Minimum allocation size (bytes) to consider in spray analysis'),
+      function: z.string().describe('Function name or address to analyze')
     },
-    async ({ pattern_threshold, size_bucket_min }) => {
-      const data = await httpClient.post('/api/vulnhunt/heap_spray_detect', {
-        pattern_threshold, size_bucket_min,
-      });
+    async ({ function: func }) => {
+      const data = await httpClient.post('/api/vuln/check_integer_overflow', { function: func });
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     }
   );
 
   server.tool(
-    'vulnhunt_use_after_free',
-    'Static heuristic scan for use-after-free candidates. ' +
-    'Finds HeapFree/free calls within functions, tracks the freed register, ' +
-    'and flags any subsequent dereference of that same register. ' +
-    'NOTE: Static analysis only — expect false positives. Confidence ~0.55. ' +
-    'Use dynamic analysis to confirm.',
-    CommonParams,
-    async ({ module, limit }) => {
-      const data = await httpClient.post('/api/vulnhunt/uaf_scan', { module, limit });
-      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-    }
-  );
-
-  server.tool(
-    'vulnhunt_summary',
-    'Get an overview of all available vulnerability scanning endpoints for a module. ' +
-    'Run individual scans via vulnhunt_format_string, vulnhunt_stack_frames, ' +
-    'vulnhunt_integer_overflow, vulnhunt_heap_spray, and vulnhunt_use_after_free.',
+    'vulnhunt_stack_canary',
+    'Check a specific function for stack canary (stack cookie) protection: __security_cookie load and __stack_chk_fail check.',
     {
-      module: z.string().optional().describe('Module name (default: module at CIP)'),
+      function: z.string().describe('Function name or address to analyze')
     },
-    async ({ module }) => {
-      const params: Record<string, string> = {};
-      if (module) params.module = module;
-      const data = await httpClient.get('/api/vulnhunt/summary', params);
+    async ({ function: func }) => {
+      const data = await httpClient.post('/api/vuln/stack_canary_check', { function: func });
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'vulnhunt_exploitability_score',
+    'Compute an exploitability score for a function based on detected vulnerability patterns and stack canary status.',
+    {
+      function: z.string().describe('Function name or address to analyze')
+    },
+    async ({ function: func }) => {
+      const data = await httpClient.post('/api/vuln/exploitability_score', { function: func });
       return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
     }
   );

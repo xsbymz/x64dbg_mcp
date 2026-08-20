@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <wincrypt.h>
 #pragma comment(lib, "crypt32.lib")
@@ -7,7 +7,7 @@ using json = nlohmann::json;
 
 namespace handlers {
 void register_authenticode_leaf_parser_routes(c_http_router& router) {
-    router.post("/api/authenticode/parse_leaf_cert", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/authenticode/parse_leaf_cert", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string filePath = body.value("file_path", "");
         json result;
@@ -18,10 +18,10 @@ void register_authenticode_leaf_parser_routes(c_http_router& router) {
             {"SignerInfo", "IssuerAndSerialNumber, DigestAlgorithm (SHA256), EncryptedDigest"},
             {"RFC_3161_Timestamp", "OID 1.3.6.1.4.1.311.3.3.1 (Authenticode Timestamp) or OID 1.2.840.113549.1.9.16.1.4 (RFC 3161 TSTInfo)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/authenticode/validate_timestamp_countersignature", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/authenticode/validate_timestamp_countersignature", [](const s_http_request& req) {
         json result;
         result["timestamp_validation_rules"] = {
             "1. Extract unauthenticatedAttributes from SignerInfo structure",
@@ -29,7 +29,8 @@ void register_authenticode_leaf_parser_routes(c_http_router& router) {
             "3. Verify TimeStamp Authority (TSA) certificate chain against trusted roots",
             "4. Verify signing time was before certificate expiration date for long-term validity"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

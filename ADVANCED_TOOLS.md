@@ -98,6 +98,129 @@ Gadget reliability scoring.
 
 Intent-based patching.
 
+### `x64dbg_exploit_primitives`
+
+Exploit primitive analysis and payload generation.
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `generate_payload` | `module?`, `target?` | Generate ROP payload for a target behavior |
+| `format_string_analysis` | `module?`, `buffer_address?` | Analyze format string vulnerability |
+| `stack_pivot_analyze` | `module?`, `pivot_address?` | Analyze stack pivot gadgets |
+| `seh_overflow_analyze` | `module?`, `seh_handler_address?` | Analyze SEH overflow vulnerability |
+| `heap_spray_analyze` | `module?`, `spray_size?` | Analyze heap spray patterns |
+
+**Example: Generate ROP payload**
+```json
+{
+  "tool": "x64dbg_exploit_primitives",
+  "arguments": {
+    "action": "generate_payload",
+    "module": "ntdll.dll",
+    "target": "execute_shellcode"
+  }
+}
+```
+
+### `x64dbg_vulnerability_assessment`
+
+End-to-end vulnerability assessment workflow. Chains multiple analysis steps: pattern scan, buffer overflow check, format string check, integer overflow check, stack canary analysis, and exploitability scoring.
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `run_assessment` | `module?` | Run full vulnerability assessment on module |
+
+**Example: Run vulnerability assessment**
+```json
+{
+  "tool": "x64dbg_vulnerability_assessment",
+  "arguments": {
+    "action": "run_assessment",
+    "module": "target.exe"
+  }
+}
+```
+
+### `x64dbg_rop_workflow`
+
+End-to-end ROP exploit development workflow. Chains gadget finding, chain building, and validation.
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `develop_chain` | `module?`, `target?`, `max_gadgets?` | Full ROP chain development workflow |
+
+**Example: Develop ROP chain**
+```json
+{
+  "tool": "x64dbg_rop_workflow",
+  "arguments": {
+    "action": "develop_chain",
+    "module": "ntdll.dll",
+    "target": "execute_shellcode",
+    "max_gadgets": 20
+  }
+}
+```
+
+### `vulnhunt_scan_patterns`
+
+Scan a module for vulnerability patterns: unsafe functions, format strings, heap issues, and stack canary presence.
+
+| Parameters | Description |
+|------------|-------------|
+| `module?` | Module to scan (default: module at CIP) |
+| `limit?` | Maximum findings to return (default: 200) |
+
+### `vulnhunt_buffer_overflow`
+
+Check a specific function for buffer overflow candidates.
+
+| Parameters | Description |
+|------------|-------------|
+| `function` | Function name or address to analyze |
+
+### `vulnhunt_format_string`
+
+Check a specific function for format string vulnerabilities.
+
+| Parameters | Description |
+|------------|-------------|
+| `function` | Function name or address to analyze |
+
+### `vulnhunt_integer_overflow`
+
+Check a specific function for integer overflow candidates.
+
+| Parameters | Description |
+|------------|-------------|
+| `function` | Function name or address to analyze |
+
+### `vulnhunt_stack_canary`
+
+Check a specific function for stack canary protection.
+
+| Parameters | Description |
+|------------|-------------|
+| `function` | Function name or address to analyze |
+
+### `vulnhunt_exploitability_score`
+
+Compute exploitability score for a function.
+
+| Parameters | Description |
+|------------|-------------|
+| `function` | Function name or address to analyze |
+
+### `x64dbg_diffing`
+
+Binary diffing: compare in-memory modules against on-disk PE, compare two files, and find security patches.
+
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `memory_vs_disk` | `module` | Compare loaded module against on-disk image |
+| `binary` | `file_a`, `file_b` | Compare two binary files |
+| `find_security_patches` | `module` | Find security patches in a module |
+
 ---
 
 ## Hardware Tracing & CET

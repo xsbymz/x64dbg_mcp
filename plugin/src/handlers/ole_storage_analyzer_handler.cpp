@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_ole_storage_analyzer_routes(c_http_router& router) {
-    router.post("/api/ole_storage/parse_compound_file", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ole_storage/parse_compound_file", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string filePath = body.value("file_path", "");
         json result;
@@ -17,10 +17,10 @@ void register_ole_storage_analyzer_routes(c_http_router& router) {
             {"MiniFAT_Sectors", "Mini-Sector Allocation Table for small streams (< 4096 bytes)"},
             {"Directory_Sector", "Array of 128-byte Directory Entries organized as Red-Black Tree"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/ole_storage/enumerate_streams", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/ole_storage/enumerate_streams", [](const s_http_request& req) {
         json result;
         result["standard_stream_names"] = {
             {"\\x05SummaryInformation", "Metadata: Author, LastSavedBy, Revision, Application"},
@@ -30,17 +30,18 @@ void register_ole_storage_analyzer_routes(c_http_router& router) {
             {"VBA / _VBA_PROJECT", "Embedded VBA macro project code streams"},
             {"\\x01Ole10Native", "Embedded native binary payload / dropped executable"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/ole_storage/detect_exploit_patterns", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/ole_storage/detect_exploit_patterns", [](const s_http_request& req) {
         json result;
         result["ole_exploit_threats"] = {
             {"Equation_Editor_CVE-2017-11882", "Embedded Equation3 CLSID {0002CE02-0000-0000-C000-000000000046} with font record buffer overflow"},
             {"VBA_Purging", "PerformanceCache compiled P-code present while source VBA compressed source code is removed (evades static AV regex)"},
             {"Embedded_Package_Payload", "Ole10Native stream containing PE file (MZ/PE) extracted via packager.dll"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

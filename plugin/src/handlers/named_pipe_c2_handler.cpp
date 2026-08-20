@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_named_pipe_c2_routes(c_http_router& router) {
-    router.post("/api/pipe_c2/enumerate_all_pipes", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/pipe_c2/enumerate_all_pipes", [](const s_http_request& req) {
         json result;
         result["pipes"] = json::array();
         
@@ -22,10 +22,10 @@ void register_named_pipe_c2_routes(c_http_router& router) {
             FindClose(h);
         }
         result["pipe_count"] = result["pipes"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/pipe_c2/match_known_c2_patterns", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/pipe_c2/match_known_c2_patterns", [](const s_http_request& req) {
         json result;
         result["known_c2_pipe_signatures"] = {
             {"Cobalt_Strike_Default", "msagent_* / MSSE-*-server / postex_* / status_*"},
@@ -36,10 +36,10 @@ void register_named_pipe_c2_routes(c_http_router& router) {
             {"Havoc_Demon", "demon_* / havoc_*"}
         };
         result["matching_logic"] = "Scan enumerated pipes against regular expressions for default C2 profile pipe names and malleable C2 SMB templates";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/pipe_c2/analyze_pipe_connections", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/pipe_c2/analyze_pipe_connections", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string pipeName = body.value("pipe_name", "");
         json result;
@@ -51,7 +51,8 @@ void register_named_pipe_c2_routes(c_http_router& router) {
             "Max instances and current open handle count",
             "Impersonation level granted to server (SecurityIdentification vs SecurityImpersonation)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

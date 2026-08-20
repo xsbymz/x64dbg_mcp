@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_acpi_table_routes(c_http_router& router) {
-    router.post("/api/acpi/enumerate_tables", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/acpi/enumerate_tables", [](const s_http_request& req) {
         json result;
         result["tables"] = json::array();
         // Enumerate ACPI tables via NtQuerySystemInformation(SystemFirmwareTableInformation)
@@ -39,9 +39,9 @@ void register_acpi_table_routes(c_http_router& router) {
             "Custom SSDT tables can load rogue ACPI device handlers",
             "DMAR table integrity verifies IOMMU protection boundaries"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/acpi/parse_dsdt", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/acpi/parse_dsdt", [](const s_http_request& req) {
         json result;
         UINT sz = GetSystemFirmwareTable('ACPI','DSDT',nullptr,0);
         result["dsdt_size"] = sz;
@@ -65,9 +65,9 @@ void register_acpi_table_routes(c_http_router& router) {
             }
         }
         result["aml_parsing"] = "AML bytecode is a stack-based interpreted language. Use acpica/iasl to decompile to ASL source. Look for: custom device _DSM methods, OperationRegion SystemMemory references pointing to unexpected physical ranges, EmbeddedControl accesses.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/acpi/validate_dmar_entries", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/acpi/validate_dmar_entries", [](const s_http_request& req) {
         json result;
         UINT sz = GetSystemFirmwareTable('ACPI','RAMD',nullptr,0); // DMAR reversed
         result["dmar_note"] = "DMAR (DMA Remapping) table describes IOMMU hardware. Each DRHD entry covers a PCI bus segment. ANDD entries map ACPI namespace devices for IOMMU exclusion. Rootkits manipulate DRHD to exclude malicious DMA-capable devices from IOMMU protection.";
@@ -83,7 +83,8 @@ void register_acpi_table_routes(c_http_router& router) {
             "Malicious firmware removes IOMMU protection by modifying DRHD scope",
             "Check: all PCIe devices behind an IOMMU DRHD, no bypass scope entries"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

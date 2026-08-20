@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_vmx_cap_auditor_routes(c_http_router& router) {
-    router.post("/api/vmx_cap/audit_msrs", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/vmx_cap/audit_msrs", [](const s_http_request& req) {
         json result;
         int info[4] = {};
         __cpuid(info, 1);
@@ -25,17 +25,18 @@ void register_vmx_cap_auditor_routes(c_http_router& router) {
             {"0x48B", "IA32_VMX_PROCBASED_CTLS2 — Secondary Processor-based VM-execution controls (EPT, RDTSCP, VPID, Descriptor table exiting)"},
             {"0x48C", "IA32_VMX_EPT_VPID_CAP — EPT page walk length (4 levels), 2MB/1GB large pages, INVEPT/INVVPID instructions"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/vmx_cap/evaluate_nested_virt", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/vmx_cap/evaluate_nested_virt", [](const s_http_request& req) {
         json result;
         result["nested_virtualization_indicators"] = {
             {"Shadow_VMCS", "IA32_VMX_MISC bit 28 = 1 indicates hardware support for VMWRITE/VMREAD to shadow VMCS without VMEXIT"},
             {"EPT_Violations", "Secondary Proc-based control bit 1 (Enable EPT) supported in nested L1 hypervisor"},
             {"Virtual_APIC", "Virtual-interrupt delivery and APIC-register virtualization supported for L2 guest"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

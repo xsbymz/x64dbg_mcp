@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_paging_walker_routes(c_http_router& router) {
-    router.post("/api/paging/walk_virtual_address", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/paging/walk_virtual_address", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string vaStr = body.value("virtual_address", "0x7FFE0000");
         uint64_t va = 0;
@@ -47,10 +47,10 @@ void register_paging_walker_routes(c_http_router& router) {
             {"NX/XD (Bit 63)", "No-Execute / Execute-Disable"}
         };
 
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/paging/inspect_pcid_layout", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/paging/inspect_pcid_layout", [](const s_http_request& req) {
         json result;
         result["pcid_cr3_layout"] = {
             {"Bits_11_0", "PCID (Process-Context Identifier: 12-bit address space ID)"},
@@ -62,7 +62,8 @@ void register_paging_walker_routes(c_http_router& router) {
             "User-mode CR3 (PCID = N | 0x000): Maps user-space + minimal trampoline",
             "Kernel-mode CR3 (PCID = N | 0x800): Maps entire virtual address space including kernel structures"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <winternl.h>
 using json = nlohmann::json;
@@ -7,7 +7,7 @@ using json = nlohmann::json;
 namespace handlers {
 void register_uefi_runtime_services_routes(c_http_router& router) {
 
-    router.post("/api/uefi/dump_runtime_table", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/uefi/dump_runtime_table", [](const s_http_request& req) {
         json result;
         result["note"] = "EFI Runtime Services Table: global function pointer table at EFI_SYSTEM_TABLE.RuntimeServices. Bootkits patch GetVariable/SetVariable to persist across OS reinstall.";
         result["runtime_services"] = {
@@ -30,10 +30,10 @@ void register_uefi_runtime_services_routes(c_http_router& router) {
         UINT fw = GetSystemFirmwareTable('RSMB', 0, nullptr, 0);
         result["firmware_table_size"] = fw;
         result["firmware_accessible"] = (fw > 0);
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/uefi/validate_service_pointers", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/uefi/validate_service_pointers", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body=json::object(); }
         json result;
         result["validation_approach"] = {
@@ -48,10 +48,10 @@ void register_uefi_runtime_services_routes(c_http_router& router) {
             "Pointer into POOL_NX_NONPAGED allocation",
             "Trampoline pattern at target: MOV RAX,imm64; JMP RAX"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/uefi/detect_bootkit_hooks", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/uefi/detect_bootkit_hooks", [](const s_http_request& req) {
         json result;
         result["bootkit_signatures"] = {
             {"MoonBounce","Patches SmmGetVariable in SMRAM via vulnerable SMM driver; persists in SPI BIOS region"},
@@ -72,7 +72,8 @@ void register_uefi_runtime_services_routes(c_http_router& router) {
         BOOL got = GetFirmwareEnvironmentVariableW(L"SecureBoot", L"{8be4df61-93ca-11d2-aa0d-00e098032b8c}", &secureboot, sz);
         result["secure_boot_enabled"] = got ? (secureboot == 1) : false;
         result["secure_boot_readable"] = (got != 0);
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

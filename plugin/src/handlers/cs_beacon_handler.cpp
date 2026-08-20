@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_cs_beacon_routes(c_http_router& router) {
-    router.post("/api/cs_beacon/scan_memory", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/cs_beacon/scan_memory", [](const s_http_request& req) {
         json body; try{body=json::parse(req.body);}catch(...){body=json::object();}
         DWORD pid = body.value("pid",(DWORD)0);
         json result; result["pid"]=pid; result["hits"]=json::array();
@@ -15,7 +15,7 @@ void register_cs_beacon_routes(c_http_router& router) {
         const BYTE cs_xor_key = 0x69;
         // Known beacon config "magic" after XOR decode: 0x0001 = payload type field
         HANDLE hProc = pid ? OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_INFORMATION,FALSE,pid) : GetCurrentProcess();
-        if (!hProc && pid) { result["error"]="OpenProcess failed"; res.set_content(result.dump(),"application/json"); return; }
+        if (!hProc && pid) { result["error"]="OpenProcess failed"; return s_http_response::ok(result); }
         SYSTEM_INFO si={}; GetSystemInfo(&si);
         BYTE* addr=(BYTE*)si.lpMinimumApplicationAddress;
         BYTE* maxAddr=(BYTE*)si.lpMaximumApplicationAddress;
@@ -49,9 +49,9 @@ void register_cs_beacon_routes(c_http_router& router) {
         if (pid && hProc) CloseHandle(hProc);
         result["hit_count"] = result["hits"].size();
         result["beacon_types"] = {{"0","Payload Type"},{"1","HTTP Beacon"},{"2","HTTPS Beacon"},{"8","SMB Beacon"},{"16","TCP Beacon"},{"32","External C2"}};
-        res.set_content(result.dump(),"application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cs_beacon/extract_config", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/cs_beacon/extract_config", [](const s_http_request& req) {
         json body; try{body=json::parse(req.body);}catch(...){body=json::object();}
         json result;
         result["config_fields"] = {
@@ -75,9 +75,9 @@ void register_cs_beacon_routes(c_http_router& router) {
             "Foliage: SetWaitableTimer + TpAllocTimer APC to decrypt+execute+re-encrypt",
             "Gargoyle: timer-based APC with RWX flip using VirtualAlloc+memcpy gadgets"
         };
-        res.set_content(result.dump(),"application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cs_beacon/detect_sleep_obfuscation", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/cs_beacon/detect_sleep_obfuscation", [](const s_http_request& req) {
         json body; try{body=json::parse(req.body);}catch(...){body=json::object();}
         DWORD pid = body.value("pid",(DWORD)0);
         json result; result["sleep_obfuscation_indicators"]=json::array();
@@ -101,7 +101,8 @@ void register_cs_beacon_routes(c_http_router& router) {
             {"waitable_timers","Check CreateWaitableTimer handles — beacon creates timer for sleep cycle"},
             {"thread_pool_apc","Look for TpAllocTimer/TpSetTimer calls in thread pool API trace"}
         };
-        res.set_content(result.dump(),"application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_minifilter_driver_routes(c_http_router& router) {
-    router.post("/api/minifilter/enumerate_filters", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/minifilter/enumerate_filters", [](const s_http_request& req) {
         json result;
         result["fltmgr_architecture"] = {
             {"Filter_Manager", "FltMgr.sys manages filesystem minifilter driver stack"},
@@ -22,23 +22,24 @@ void register_minifilter_driver_routes(c_http_router& router) {
             {"140000-149999", "System Recovery"},
             {"40000-49999", "FSFilter Bottom"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/minifilter/check_altitude_ordering", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/minifilter/check_altitude_ordering", [](const s_http_request& req) {
         json result;
         result["altitude_threat_analysis"] = {
             "A malicious minifilter registered with altitude > 330,000 intercepts and hides file I/O BEFORE Anti-Virus filters see the request",
             "A malicious minifilter with altitude < 320,000 can tamper with file data on disk after Anti-Virus has already validated the pre-operation buffer",
             "Verification requires checking registry key HKLM\\SYSTEM\\CurrentControlSet\\Services\\[Driver]\\Instances"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/minifilter/validate_callback_pointers", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/minifilter/validate_callback_pointers", [](const s_http_request& req) {
         json result;
         result["validation_rules"] = "All FLT_OPERATION_REGISTRATION callback pointers must reside within signed kernel driver modules listed in PsLoadedModuleList";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

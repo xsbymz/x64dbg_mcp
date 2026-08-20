@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <mscat.h>
 #pragma comment(lib, "wintrust.lib")
@@ -7,7 +7,7 @@ using json = nlohmann::json;
 
 namespace handlers {
 void register_catalog_db_lookup_routes(c_http_router& router) {
-    router.post("/api/catalog_db/query_by_hash", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/catalog_db/query_by_hash", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string hashHex = body.value("file_hash_sha256", "");
         json result;
@@ -18,10 +18,10 @@ void register_catalog_db_lookup_routes(c_http_router& router) {
             {"CryptCATAdminAcquireContext", "Initializes catalog administrator handle"},
             {"CryptCATAdminEnumCatalogFromHash", "Searches all system security catalogs for matching member hash"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/catalog_db/enumerate_system_catalogs", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/catalog_db/enumerate_system_catalogs", [](const s_http_request& req) {
         json result;
         result["system_catalog_files"] = json::array();
         WIN32_FIND_DATAW fd = {};
@@ -39,7 +39,8 @@ void register_catalog_db_lookup_routes(c_http_router& router) {
             FindClose(h);
         }
         result["total_displayed"] = result["system_catalog_files"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

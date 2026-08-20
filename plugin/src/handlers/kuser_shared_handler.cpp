@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -46,7 +46,7 @@ namespace handlers {
 void register_kuser_shared_routes(c_http_router& router) {
 
     // Dump all KUSER_SHARED_DATA fields
-    router.post("/api/kuser_shared/dump_fields", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/kuser_shared/dump_fields", [](const s_http_request& req) {
         json result;
 
         // Access KUSER_SHARED_DATA at its well-known fixed user-mode VA
@@ -96,11 +96,11 @@ void register_kuser_shared_routes(c_http_router& router) {
         }
 
         result["arch_note"] = "0x7FFE0000 = user-mode RO alias of kernel 0xFFDF0000 (x86) / KUSER_SHARED_DATA_VA (x64)";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Detect debugger-presence flags in KUSER_SHARED_DATA
-    router.post("/api/kuser_shared/detect_debugger_flags", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/kuser_shared/detect_debugger_flags", [](const s_http_request& req) {
         json result;
 
         const volatile BYTE* kusd = reinterpret_cast<const volatile BYTE*>(0x7FFE0000);
@@ -123,11 +123,11 @@ void register_kuser_shared_routes(c_http_router& router) {
         result["peb_being_debugged"] = (bool)isDebuggedPEB;
         result["ntglobalflag_check"] = "PEB.NtGlobalFlag should be 0x70 under debugger (FLG_HEAP_ENABLE_TAIL_CHECK | FLG_HEAP_ENABLE_FREE_CHECK | FLG_HEAP_VALIDATE_PARAMETERS)";
 
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Monitor TickCount drift for hypervisor timing jitter
-    router.post("/api/kuser_shared/monitor_tick_drift", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/kuser_shared/monitor_tick_drift", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -168,8 +168,9 @@ void register_kuser_shared_routes(c_http_router& router) {
             {"value_1","INT 2E (WOW64/legacy)"},
             {"heaven_gate_note","SystemCall=0 with WOW64 process means Heaven's Gate (32->64 far call 0x33:addr) is available"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+

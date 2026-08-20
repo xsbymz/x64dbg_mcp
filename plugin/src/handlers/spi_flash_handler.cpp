@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_spi_flash_routes(c_http_router& router) {
-    router.post("/api/spi/read_descriptor_map", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/spi/read_descriptor_map", [](const s_http_request& req) {
         json result;
         result["spi_descriptor_layout"] = {
             {"FD_Signature","0x0FF0A55A at offset 0x10 — Flash Descriptor Valid Magic"},
@@ -25,10 +25,10 @@ void register_spi_flash_routes(c_http_router& router) {
             "CosmicStrand & MoonBounce: persistent implants in SPI flash BIOS region",
             "Flash Protection Override: HDA_SDO jumper / pin strap overrides descriptor security"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/spi/get_region_access_rights", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/spi/get_region_access_rights", [](const s_http_request& req) {
         json result;
         result["pr_registers"] = {
             {"PR0-PR4","Protected Range Registers in Intel SPI Controller (RCBA/MMIO base 0xFE010000 / SPIBAR)"},
@@ -41,10 +41,10 @@ void register_spi_flash_routes(c_http_router& router) {
             "BIOS_WE=1 (BIOS Write Enable): Flash is unlocked for write cycles",
             "BLE=0 (BIOS Lock Enable): BIOS_CNTL can be toggled without triggering SMI"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/spi/detect_region_anomalies", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/spi/detect_region_anomalies", [](const s_http_request& req) {
         json result;
         result["anomaly_detection_rules"] = {
             "1. Check if SMM_BWP (BIOS_CNTL bit 5) is disabled — allows non-SMM SPI flash overwrite",
@@ -52,7 +52,8 @@ void register_spi_flash_routes(c_http_router& router) {
             "3. Verify Flash Descriptor Security Override Strap (HDA_SDO loop) is not asserting unrestricted mode",
             "4. Compare BIOS region cryptographic hash against OEM golden image"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

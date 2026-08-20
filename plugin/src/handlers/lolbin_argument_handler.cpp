@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_lolbin_argument_routes(c_http_router& router) {
-    router.post("/api/lolbin/extract_command_line", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/lolbin/extract_command_line", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -16,10 +16,10 @@ void register_lolbin_argument_routes(c_http_router& router) {
             {"WMI_Win32_Process", "CommandLine property via WMI / CIM repository"},
             {"ETW_Process_Start", "Microsoft-Windows-Kernel-Process event ID 1"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/lolbin/detect_known_patterns", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/lolbin/detect_known_patterns", [](const s_http_request& req) {
         json result;
         result["lolbin_threat_matrix"] = {
             {"mshta.exe", "mshta.exe vbscript:Close(Execute(\"...\")) or remote HTA execution"},
@@ -30,10 +30,10 @@ void register_lolbin_argument_routes(c_http_router& router) {
             {"wmic.exe", "wmic.exe process call create [cmd] / os get /format:[xsl_url]"},
             {"powershell.exe", "powershell.exe -NoP -NonI -W Hidden -Exec Bypass -Enc [Base64]"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/lolbin/decode_encoded_arguments", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/lolbin/decode_encoded_arguments", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string commandLine = body.value("command_line", "");
         json result;
@@ -44,7 +44,8 @@ void register_lolbin_argument_routes(c_http_router& router) {
             "3. Decompress GZIP / Deflate compressed script blocks",
             "4. Resolve hex-encoded command arguments (/hex / 0x arrays)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

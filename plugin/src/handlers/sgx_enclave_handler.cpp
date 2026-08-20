@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_sgx_enclave_routes(c_http_router& router) {
-    router.post("/api/sgx/detect_enclaves", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/sgx/detect_enclaves", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuid(info,0); int maxLeaf=info[0];
@@ -51,9 +51,9 @@ void register_sgx_enclave_routes(c_http_router& router) {
             "Cryptocurrency miners use SGX to protect algorithm from modification",
             "SGX side-channels (SGAxe, CacheOut) allow partial enclave memory recovery"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/sgx/read_epc_layout", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/sgx/read_epc_layout", [](const s_http_request& req) {
         json result;
         result["epc_structure"] = {
             {"EPC","Enclave Page Cache — physical memory reserved for SGX by firmware, encrypted by hardware"},
@@ -67,9 +67,9 @@ void register_sgx_enclave_routes(c_http_router& router) {
             {"production_enclave","SECS.ATTRIBUTES.DEBUG=0 — no debug access, hardware enforced"},
             {"detection","Check if target uses sgx_create_enclave(ENCLAVE_TYPE_SGX,flags) with debug=1 vs 0"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/sgx/analyze_sigstruct", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/sgx/analyze_sigstruct", [](const s_http_request& req) {
         json result;
         result["sigstruct_fields"] = {
             {"HEADER","0x06000000E100000000000100H — constant magic bytes"},
@@ -89,7 +89,8 @@ void register_sgx_enclave_routes(c_http_router& router) {
             {"ISVSVN","ISV security version number — used for sealing key derivation"}
         };
         result["mrenclave_significance"] = "MRENCLAVE is the cryptographic identity of enclave code. Sealing uses MRENCLAVE or MRSIGNER to bind data to specific enclave version. Leaked sealed data reveals enclave identity.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

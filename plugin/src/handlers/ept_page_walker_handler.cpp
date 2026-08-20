@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_ept_page_walker_routes(c_http_router& router) {
-    router.post("/api/ept_walk/simulate_translation", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ept_walk/simulate_translation", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string gpaStr = body.value("guest_physical_address", "0x1000000");
         json result;
@@ -23,17 +23,18 @@ void register_ept_page_walker_routes(c_http_router& router) {
             {"Bit_1", "Write access (W)"},
             {"Bit_2", "Execute access (X) / Execute access for user-mode if Mode-Based Execution Control (MBEC) active"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/ept_walk/detect_hidden_hooks", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/ept_walk/detect_hidden_hooks", [](const s_http_request& req) {
         json result;
         result["ept_hooking_signature"] = {
             "1. Split EPT permissions: Read/Write mapped to original page, Execute mapped to hooked shadow page",
             "2. Read/Write memory inspection sees clean code; execution jumps into rootkit trampoline without trigger",
             "3. Detection: Force single-stepping across EPT page boundaries and monitor MTF (Monitor Trap Flag) VMEXITs"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -8,7 +8,7 @@ namespace handlers {
 void register_mmvad_tree_routes(c_http_router& router) {
 
     // Walk _MMVAD Red-Black Tree for a process
-    router.post("/api/mmvad/walk_tree", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/mmvad/walk_tree", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -41,11 +41,11 @@ void register_mmvad_tree_routes(c_http_router& router) {
         }
 
         result["node_count"] = result["vad_nodes"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Find hidden memory regions not in standard VAD
-    router.post("/api/mmvad/find_hidden_regions", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/mmvad/find_hidden_regions", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -75,11 +75,11 @@ void register_mmvad_tree_routes(c_http_router& router) {
             addr = (LPVOID)((uintptr_t)mbi.BaseAddress + mbi.RegionSize);
         }
         result["count"] = result["hidden_regions"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Dump a specific VAD node details
-    router.post("/api/mmvad/dump_vad_node", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/mmvad/dump_vad_node", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -99,8 +99,9 @@ void register_mmvad_tree_routes(c_http_router& router) {
         } else {
             result["error"] = "VirtualQueryEx failed";
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+

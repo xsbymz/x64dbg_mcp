@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_gargoyle_sleep_routes(c_http_router& router) {
-    router.post("/api/gargoyle/scan_waitable_timers", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/gargoyle/scan_waitable_timers", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -17,10 +17,10 @@ void register_gargoyle_sleep_routes(c_http_router& router) {
             "4. Decrypts shellcode body in memory, executes quantum, re-encrypts, flips back to PAGE_READONLY/PAGE_NOACCESS",
             "5. Sets next waitable timer before going dormant"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/gargoyle/detect_rop_apc_chains", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/gargoyle/detect_rop_apc_chains", [](const s_http_request& req) {
         json result;
         result["sleep_obfuscation_frameworks"] = {
             {"Gargoyle", "Pioneered ROP-based timer APC memory permission toggling"},
@@ -33,16 +33,17 @@ void register_gargoyle_sleep_routes(c_http_router& router) {
             "Repeated VirtualProtect / NtProtectVirtualMemory transitions between RX and RW on non-image memory",
             "Stack pointer outside legitimate thread stack bounds during APC dispatch"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/gargoyle/find_non_executable_suspicious_regions", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/gargoyle/find_non_executable_suspicious_regions", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
         result["pid"] = targetPid;
         result["detection_heuristic"] = "Identify private committed MEM_READWRITE / PAGE_NOACCESS regions containing PE header signatures (MZ/PE) or high-entropy encrypted blobs that were previously observed with execution rights";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

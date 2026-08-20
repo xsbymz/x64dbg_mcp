@@ -18,8 +18,9 @@ void register_cet_shadow_manipulator_routes(c_http_router& router) {
             return s_http_response::conflict("No active debug session");
         }
 
-        duint csp = bridge.get_csp();
         duint cip = bridge.get_cip();
+        auto reg_dump = bridge.get_register_dump();
+        duint csp = reg_dump.has_value() ? reg_dump->regcontext.csp : 0;
 
         return s_http_response::ok({
             {"hardware_ssp", format_utils::format_address(csp - 0x100)},

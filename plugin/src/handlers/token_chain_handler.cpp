@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <sddl.h>
 using json = nlohmann::json;
@@ -9,7 +9,7 @@ namespace handlers {
 void register_token_chain_routes(c_http_router& router) {
 
     // Walk the full token impersonation chain across all threads
-    router.post("/api/token_chain/walk_impersonation", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/token_chain/walk_impersonation", [](const s_http_request& req) -> s_http_response {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -21,8 +21,7 @@ void register_token_chain_routes(c_http_router& router) {
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, targetPid);
         if (!hProcess) {
             result["error"] = "OpenProcess failed — pid=" + std::to_string(targetPid);
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         // Enumerate threads
@@ -44,7 +43,7 @@ void register_token_chain_routes(c_http_router& router) {
                     if (OpenThreadToken(hThread, TOKEN_QUERY, FALSE, &hToken)) {
                         tinfo["has_impersonation_token"] = true;
 
-                        TOKEN_IMPERSONATION_LEVEL impLevel;
+                        SECURITY_IMPERSONATION_LEVEL impLevel;
                         DWORD returned = 0;
                         if (GetTokenInformation(hToken, TokenImpersonationLevel, &impLevel, sizeof(impLevel), &returned)) {
                             static const char* levels[] = {"Anonymous","Identification","Impersonation","Delegation"};
@@ -85,11 +84,11 @@ void register_token_chain_routes(c_http_router& router) {
             CloseHandle(hSnap);
         }
         CloseHandle(hProcess);
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Map token ancestry DAG for the process
-    router.post("/api/token_chain/map_ancestry_dag", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/token_chain/map_ancestry_dag", [](const s_http_request& req) -> s_http_response {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -98,7 +97,7 @@ void register_token_chain_routes(c_http_router& router) {
         result["pid"] = targetPid;
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, targetPid);
-        if (!hProcess) { result["error"] = "OpenProcess failed"; res.set_content(result.dump(), "application/json"); return; }
+        if (!hProcess) { result["error"] = "OpenProcess failed"; return s_http_response::ok(result); }
 
         HANDLE hProcToken = nullptr;
         if (OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_QUERY_SOURCE, &hProcToken)) {
@@ -153,11 +152,11 @@ void register_token_chain_routes(c_http_router& router) {
         CloseHandle(hProcess);
 
         result["dag_note"] = "Full ancestry DAG (AuthenticationId chain across parent processes) requires walking all process tokens and correlating LUID logon sessions — use /api/lsass/list_sessions for full chain reconstruction.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Detect privilege escalation paths
-    router.post("/api/token_chain/detect_escalation_paths", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/token_chain/detect_escalation_paths", [](const s_http_request& req) -> s_http_response {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -167,14 +166,13 @@ void register_token_chain_routes(c_http_router& router) {
         result["escalation_paths"] = json::array();
 
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, targetPid);
-        if (!hProcess) { result["error"] = "OpenProcess failed"; res.set_content(result.dump(), "application/json"); return; }
+        if (!hProcess) { result["error"] = "OpenProcess failed"; return s_http_response::ok(result); }
 
         HANDLE hToken = nullptr;
         if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
             CloseHandle(hProcess);
             result["error"] = "OpenProcessToken failed";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         // Check for elevatable (present but disabled) privileges
@@ -222,8 +220,11 @@ void register_token_chain_routes(c_http_router& router) {
         CloseHandle(hProcess);
         result["count"] = result["escalation_paths"].size();
         result["note"] = "Privileges listed as Present-but-Disabled can often be re-enabled by the process itself via AdjustTokenPrivileges(TOKEN_ADJUST_PRIVILEGES) without elevation — critical EoP finding.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+
+
+

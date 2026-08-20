@@ -81,6 +81,7 @@ import { registerStringXrefTools } from './stringxref.js';
 import { registerAutoAnnotateTools } from './autoannotate.js';
 import { registerVulnHuntTools } from './vulnhunt.js';
 import { registerCallTreeTools } from './calltree.js';
+import { registerWorkflowTools } from './workflow.js';
 // SPECIFICATION FEATURES 11-20
 import { registerBehaviorChainExtractorTools } from './behavior_chain_extractor.js';
 import { registerC2PatternAnalyzerTools } from './c2_pattern_analyzer.js';
@@ -468,6 +469,7 @@ export function registerAllTools(server: McpServer) {
   registerInjectionTools(server);
   registerMemoryClassifierTools(server);
   registerRopBuilderTools(server);
+  registerWorkflowTools(server);
   registerStackInspectorTools(server);
   registerPrivescTools(server);
   registerImportForgeTools(server);

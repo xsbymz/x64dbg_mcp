@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_uefi_nvram_routes(c_http_router& router) {
 
-    router.post("/api/uefi_nvram/enumerate_variables", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/uefi_nvram/enumerate_variables", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body=json::object(); }
         json result;
         result["variables"] = json::array();
@@ -40,10 +40,10 @@ void register_uefi_nvram_routes(c_http_router& router) {
         }
         result["setup_mode_note"] = "SetupMode=1 means Secure Boot platform key not enrolled — Secure Boot validation disabled";
         result["db_dbx_note"] = "db=allowed signatures, dbx=forbidden (revocation) list, KEK=key exchange key, PK=platform key";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/uefi_nvram/read_variable", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/uefi_nvram/read_variable", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body=json::object(); }
         std::string name = body.value("name","SecureBoot");
         std::string guid = body.value("guid","{8be4df61-93ca-11d2-aa0d-00e098032b8c}");
@@ -61,10 +61,10 @@ void register_uefi_nvram_routes(c_http_router& router) {
             for (DWORD i = 0; i < std::min(sz,(DWORD)64); i++) { char h[3]; snprintf(h,3,"%02X",buf[i]); hex+=h; }
             result["data_hex"] = hex;
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/uefi_nvram/check_secureboot_state", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/uefi_nvram/check_secureboot_state", [](const s_http_request& req) {
         json result;
         auto readVar = [](const wchar_t* name, const wchar_t* guid) -> int {
             BYTE buf[4] = {}; DWORD sz = sizeof(buf);
@@ -86,7 +86,8 @@ void register_uefi_nvram_routes(c_http_router& router) {
             {"AuditMode_1","Audit mode — Secure Boot violations logged but not blocked"},
             {"db_manipulation","If db contains attacker-controlled certificate — can boot malicious EFI application"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

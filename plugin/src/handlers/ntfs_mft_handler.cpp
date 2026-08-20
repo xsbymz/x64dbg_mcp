@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <winioctl.h>
 using json = nlohmann::json;
@@ -41,7 +41,7 @@ namespace handlers {
 void register_ntfs_mft_routes(c_http_router& router) {
 
     // Parse a specific MFT record by record number or path
-    router.post("/api/ntfs_mft/read_record", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ntfs_mft/read_record", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -57,8 +57,7 @@ void register_ntfs_mft_routes(c_http_router& router) {
 
         if (hVol == INVALID_HANDLE_VALUE) {
             result["error"] = "Failed to open volume — requires admin rights";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         // Get MFT cluster info via FSCTL_GET_NTFS_VOLUME_DATA
@@ -89,11 +88,11 @@ void register_ntfs_mft_routes(c_http_router& router) {
         };
 
         CloseHandle(hVol);
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Detect timestomping by comparing $STANDARD_INFORMATION vs $FILE_NAME timestamps
-    router.post("/api/ntfs_mft/detect_timestomp", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ntfs_mft/detect_timestomp", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -128,11 +127,11 @@ void register_ntfs_mft_routes(c_http_router& router) {
                 CloseHandle(hFile);
             }
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Carve deleted MFT records
-    router.post("/api/ntfs_mft/carve_deleted", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ntfs_mft/carve_deleted", [](const s_http_request& req) {
         json result;
         result["carving_strategy"] = {
             {"mft_record_size","1024 bytes (typical), 4096 bytes on large sectors"},
@@ -143,11 +142,11 @@ void register_ntfs_mft_routes(c_http_router& router) {
         };
         result["usn_journal_path"] = "\\\\.\\C:\\$Extend\\$UsnJrnl:$J";
         result["detection_value"] = "Carving deleted MFT records reveals: recently deleted executables, staging directories, dropper artifacts, and anti-forensic tool execution evidence";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Enumerate alternate data streams
-    router.post("/api/ntfs_mft/enum_ads", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ntfs_mft/enum_ads", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -176,8 +175,10 @@ void register_ntfs_mft_routes(c_http_router& router) {
         }
         result["count"] = result["ads_streams"].size();
         result["note"] = "Alternate Data Streams hide payload data in NTFS. Executable ADS can be launched via 'wscript.exe file.txt:payload.js'. Zone.Identifier stream marks downloaded files.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 }
 
 } // namespace handlers
+
+

@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <wbemidl.h>
 #pragma comment(lib, "wbemuuid.lib")
@@ -7,7 +7,7 @@ using json = nlohmann::json;
 
 namespace handlers {
 void register_wmi_subscription_routes(c_http_router& router) {
-    router.post("/api/wmi_sub/enumerate_subscriptions", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/wmi_sub/enumerate_subscriptions", [](const s_http_request& req) {
         json result;
         result["subscriptions"] = json::array();
         // Enumerate WMI subscriptions via WMI COM API
@@ -61,9 +61,9 @@ void register_wmi_subscription_routes(c_http_router& router) {
             "Common triggers: __InstanceModificationEvent on Win32_LocalTime, __InstanceCreationEvent on Win32_Process"
         };
         result["known_malware"] = {"APT32","APT33","FIN6","Emotet (WMI lateral movement)","Venom RAT (persistence)"};
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/wmi_sub/decode_active_script_consumers", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/wmi_sub/decode_active_script_consumers", [](const s_http_request& req) {
         json result;
         IWbemLocator* pLoc = nullptr; IWbemServices* pSvc = nullptr;
         HRESULT hr = CoInitializeEx(nullptr,COINIT_MULTITHREADED);
@@ -102,9 +102,9 @@ void register_wmi_subscription_routes(c_http_router& router) {
             pLoc->Release();
         }
         if (ci) CoUninitialize();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/wmi_sub/detect_suspicious_bindings", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/wmi_sub/detect_suspicious_bindings", [](const s_http_request& req) {
         json result;
         result["binding_analysis"] = {
             "A complete WMI subscription requires three objects: __EventFilter + __EventConsumer + __FilterToConsumerBinding",
@@ -116,7 +116,8 @@ void register_wmi_subscription_routes(c_http_router& router) {
             "Filter query: SELECT * FROM __InstanceModificationEvent WITHIN 60 WHERE TargetInstance ISA 'Win32_PerfFormattedData_PerfOS_System'",
             "Script text contains: FromBase64String, Invoke-Expression, [System.Convert], wscript.shell"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

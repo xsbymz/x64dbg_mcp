@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_cr_register_routes(c_http_router& router) {
-    router.post("/api/cr_regs/read_all", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cr_regs/read_all", [](const s_http_request& req) {
         json result;
         result["cr_register_reference"] = {
             {"CR0",{
@@ -44,9 +44,9 @@ void register_cr_register_routes(c_http_router& router) {
         result["cpuid_cet_supported"]  = (info[3]>>7)&1;
         result["cpuid_umip_supported"] = (info[2]>>2)&1;
         result["note"] = "CR register reads (MOV RAX,CR0/CR4) require ring-0. Use kernel debug context. CR0.WP=0 means kernel can write read-only pages — critical exploit primitive.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cr_regs/check_smep_smap", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cr_regs/check_smep_smap", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuidex(info,7,0);
@@ -59,9 +59,9 @@ void register_cr_register_routes(c_http_router& router) {
             {"CR0_WP_clear","Clears write protection — allows patching read-only kernel code pages"},
             {"native_API","NtSetSystemInformation(SystemFlags) can clear some protections in debug builds"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/cr_regs/detect_cleared_wp_bit", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/cr_regs/detect_cleared_wp_bit", [](const s_http_request& req) {
         json result;
         result["wp_bit_significance"] = "CR0.WP (bit 16): when cleared, kernel code can write to read-only (PAGE_READONLY) mapped pages. Classic primitive for patching ntoskrnl SSDT, IDT, or kernel code from ring-0 exploit.";
         result["detection_indicators"] = {
@@ -74,7 +74,8 @@ void register_cr_register_routes(c_http_router& router) {
             "DKO M (Direct Kernel Object Manipulation) tool clears WP to patch EPROCESS",
             "DKOM rootkits use WP clear + write + WP restore in kernel thread"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

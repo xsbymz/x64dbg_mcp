@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <winternl.h>
 using json = nlohmann::json;
@@ -9,7 +9,7 @@ namespace handlers {
 void register_kernel_pool_feng_shui_routes(c_http_router& router) {
 
     // Scan pool tags via NtQuerySystemInformation(SystemBigPoolInformation)
-    router.post("/api/pool/scan_tags", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/pool/scan_tags", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -53,11 +53,11 @@ void register_kernel_pool_feng_shui_routes(c_http_router& router) {
         }
         result["count"] = result["pool_entries"].size();
         result["note"] = "Big pool entries from NtQuerySystemInformation(SystemBigPoolInformation). For grooming: identify chunk sizes and tags of target kernel objects (_EPROCESS tag 'Proc', _TOKEN tag 'Toke', _FILE_OBJECT tag 'File').";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Layout analysis for groom planning
-    router.post("/api/pool/groom_layout", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/pool/groom_layout", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -78,11 +78,11 @@ void register_kernel_pool_feng_shui_routes(c_http_router& router) {
             {"Event","NtCreateEvent — size 0x40, NonPagedPool"}
         };
         result["note"] = "Kernel pool feng shui grooming strategy reference for pool overflow exploitation.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Detect pool corruption indicators
-    router.post("/api/pool/detect_corruption", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/pool/detect_corruption", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -132,8 +132,10 @@ void register_kernel_pool_feng_shui_routes(c_http_router& router) {
             }
         }
         result["count"] = result["corruption_indicators"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+
+

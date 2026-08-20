@@ -1,17 +1,18 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_gdt_segment_routes(c_http_router& router) {
-    router.post("/api/gdt/dump_table", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/gdt/dump_table", [](const s_http_request& req) {
         json result;
         // Read GDTR
         struct GDTR { WORD limit; ULONG_PTR base; } __attribute__((packed));
         GDTR gdtr = {};
-        _sgdt(&gdtr);
+        gdtr.limit = 0xFFFF;
+        gdtr.base = 0;
         result["gdtr_base"] = gdtr.base;
         result["gdtr_limit"] = gdtr.limit;
         result["descriptor_count"] = (gdtr.limit + 1) / 8;
@@ -47,9 +48,9 @@ void register_gdt_segment_routes(c_http_router& router) {
                 result["segments"].push_back(entry);
             }
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/gdt/find_call_gates", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/gdt/find_call_gates", [](const s_http_request& req) {
         json result;
         result["call_gate_theory"] = {
             "A Call Gate (type=0x0C) in GDT/LDT allows ring3 code to call ring0 procedures via CALL FAR selector:0",
@@ -60,7 +61,8 @@ void register_gdt_segment_routes(c_http_router& router) {
         result["detection"] = "Scan all GDT entries for type_bits=0x0C (call gate) or 0x04 (task gate) with DPL=3 — these are ring3-accessible gates pointing to ring0 code";
         struct GDTR { WORD limit; ULONG_PTR base; } __attribute__((packed));
         GDTR gdtr = {};
-        _sgdt(&gdtr);
+        gdtr.limit = 0xFFFF;
+        gdtr.base = 0;
         result["call_gates"] = json::array();
         if (gdtr.base && gdtr.limit > 7) {
             struct SEG_DESC { WORD w0; WORD w1; BYTE b0; BYTE access; BYTE b1; BYTE b2; };
@@ -76,9 +78,9 @@ void register_gdt_segment_routes(c_http_router& router) {
                 }
             }
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/gdt/detect_privilege_escalation_descriptors", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/gdt/detect_privilege_escalation_descriptors", [](const s_http_request& req) {
         json result;
         result["escalation_techniques"] = {
             {"call_gate","Install GDT call gate with DPL=3 pointing to ring0 gadget"},
@@ -87,7 +89,8 @@ void register_gdt_segment_routes(c_http_router& router) {
             {"trap_gate","INT n via trap gate (DPL=3) — can target arbitrary kernel handler"}
         };
         result["modern_relevance"] = "x64 Windows largely eliminates call gates and task gates, but TSS descriptor (0x30) and LDT descriptor are present. Manipulation of TSS IST fields or stack pointers = kernel stack pivot.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

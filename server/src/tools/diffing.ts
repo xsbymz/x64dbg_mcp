@@ -5,16 +5,14 @@ import { httpClient } from '../http_client.js';
 export function registerDiffingTools(server: McpServer) {
   server.tool(
     'x64dbg_diffing',
-    'Binary diffing: compare in-memory modules against on-disk PE, compare sections, and list patches. ' +
-    'Actions: memory_vs_disk (compare a loaded module against its on-disk image to detect modifications, hollowing, packing), ' +
-    'pe_sections (compare sections between two modules), ' +
-    'patches (list all current byte patches with original vs patched values).',
+    'Binary diffing: compare in-memory modules against on-disk PE, compare two files, and find security patches.',
     {
-      action: z.enum(['memory_vs_disk', 'pe_sections', 'patches']).describe('Diffing action'),
-      module: z.string().optional().describe('Module name (required for memory_vs_disk and pe_sections)'),
-      module2: z.string().optional().describe('Second module name (required for pe_sections)')
+      action: z.enum(['memory_vs_disk', 'binary', 'find_security_patches']).describe('Diffing action'),
+      module: z.string().optional().describe('Module name (required for memory_vs_disk)'),
+      file_a: z.string().optional().describe('First file path (required for binary)'),
+      file_b: z.string().optional().describe('Second file path (required for binary)')
     },
-    async ({ action, module, module2 }) => {
+    async ({ action, module, file_a, file_b }) => {
       try {
         let data: unknown;
         switch (action) {
@@ -22,12 +20,13 @@ export function registerDiffingTools(server: McpServer) {
             if (!module) throw new Error('module is required for memory_vs_disk action');
             data = await httpClient.post('/api/diff/memory_vs_disk', { module });
             break;
-          case 'pe_sections':
-            if (!module || !module2) throw new Error('module and module2 are required for pe_sections action');
-            data = await httpClient.post('/api/diff/pe_sections', { module, module2: module2 });
+          case 'binary':
+            if (!file_a || !file_b) throw new Error('file_a and file_b are required for binary action');
+            data = await httpClient.post('/api/diff/binary', { file_a, file_b });
             break;
-          case 'patches':
-            data = await httpClient.get('/api/diff/patches');
+          case 'find_security_patches':
+            if (!module) throw new Error('module is required for find_security_patches action');
+            data = await httpClient.post('/api/diff/find_security_patches', { module });
             break;
         }
         return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };

@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_mem_artifact_correlator_routes(c_http_router& router) {
-    router.post("/api/mem_correlate/scan_ioc_patterns", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/mem_correlate/scan_ioc_patterns", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -16,10 +16,10 @@ void register_mem_artifact_correlator_routes(c_http_router& router) {
             {"Crypto_Keys", "PEM headers ('-----BEGIN RSA PRIVATE KEY-----'), raw 32-byte AES keys, ECC curves"},
             {"Wallet_Addresses", "Bitcoin (1, 3, bc1), Ethereum (0x), Monero (4, 8) cryptocurrency wallet regexes"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/mem_correlate/find_embedded_pes", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/mem_correlate/find_embedded_pes", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -30,13 +30,14 @@ void register_mem_artifact_correlator_routes(c_http_router& router) {
             "3. Verify FileHeader.Machine (0x8664 = x64, 0x014C = x86) and OptionalHeader.Magic",
             "4. Distinguish between properly mapped PE images vs unmapped / raw staged payload buffers"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/mem_correlate/extract_network_iocs", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/mem_correlate/extract_network_iocs", [](const s_http_request& req) {
         json result;
         result["network_ioc_correlation"] = "Correlates discovered string artifacts with active socket table entries to score high-confidence C2 infrastructure";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

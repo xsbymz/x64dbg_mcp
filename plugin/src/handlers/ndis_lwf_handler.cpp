@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <setupapi.h>
 #include <devguid.h>
@@ -11,7 +11,7 @@ namespace handlers {
 void register_ndis_lwf_routes(c_http_router& router) {
 
     // Enumerate NDIS LightWeight Filter chain on all adapters
-    router.post("/api/ndis_lwf/enumerate_filters", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ndis_lwf/enumerate_filters", [](const s_http_request& req) -> s_http_response {
         json result;
         result["adapters"] = json::array();
 
@@ -19,8 +19,7 @@ void register_ndis_lwf_routes(c_http_router& router) {
         HDEVINFO hDevInfo = SetupDiGetClassDevsW(&GUID_DEVCLASS_NET, nullptr, nullptr, DIGCF_PRESENT);
         if (hDevInfo == INVALID_HANDLE_VALUE) {
             result["error"] = "SetupDiGetClassDevsW failed";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         SP_DEVINFO_DATA devData = {sizeof(devData)};
@@ -55,7 +54,7 @@ void register_ndis_lwf_routes(c_http_router& router) {
             if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &hNetKey) == ERROR_SUCCESS) {
                 // Filter drivers are listed in UpperBindings / FilterList
                 WCHAR filters[4096] = {};
-                cbData = sizeof(filters);
+                DWORD cbData = sizeof(filters);
                 if (RegQueryValueExW(hNetKey, L"FilterList", nullptr, nullptr,
                     reinterpret_cast<LPBYTE>(filters), &cbData) == ERROR_SUCCESS) {
                     // Multi-string enumeration
@@ -80,11 +79,11 @@ void register_ndis_lwf_routes(c_http_router& router) {
             "WFP 802.3 MAC Layer LightWeight Filter",
             "ms_tcpip (Internet Protocol Version 4)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Validate LWF dispatch table function pointers
-    router.post("/api/ndis_lwf/validate_dispatch_pointers", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ndis_lwf/validate_dispatch_pointers", [](const s_http_request& req) -> s_http_response {
         json result;
         result["dispatch_handlers"] = {
             "FilterReceiveNetBufferLists — inbound packet interception",
@@ -107,11 +106,11 @@ void register_ndis_lwf_routes(c_http_router& router) {
             "FilterAttach called but no corresponding NDIS_FILTER_DRIVER_CHARACTERISTICS in MiniportBlock.FilterDB",
             "NdisAllocateCloneNetBufferList used in receive path — indicates packet cloning for exfiltration"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Detect shadow/hidden NDIS LWF modules
-    router.post("/api/ndis_lwf/detect_shadow_filters", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/ndis_lwf/detect_shadow_filters", [](const s_http_request& req) -> s_http_response {
         json result;
         result["detection_approach"] = {
             {"method1","Compare adapter filter chain visible via SetupAPI/registry vs kernel _NDIS_FILTER_BLOCK chain"},
@@ -126,11 +125,13 @@ void register_ndis_lwf_routes(c_http_router& router) {
             "Extremely low filter binding timestamp (loaded before system services — boot persistence)"
         };
         result["packet_level_hiding_example"] = {
-            "TDL4 / Necurs": "Hook MiniportReceiveNetBufferLists at miniport adapter level to hide C2 UDP traffic",
-            "Azazel": "NDIS LWF to suppress DNS response packets for hijacked domains"
+            {"TDL4 / Necurs", "Hook MiniportReceiveNetBufferLists at miniport adapter level to hide C2 UDP traffic"},
+            {"Azazel", "NDIS LWF to suppress DNS response packets for hijacked domains"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 }
 
 } // namespace handlers
+
+

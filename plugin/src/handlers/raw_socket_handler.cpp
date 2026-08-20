@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_raw_socket_routes(c_http_router& router) {
-    router.post("/api/raw_socket/enumerate_raw_sockets", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/raw_socket/enumerate_raw_sockets", [](const s_http_request& req) {
         json result;
         result["raw_socket_api"] = "WSASocket(AF_INET, SOCK_RAW, IPPROTO_RAW / IPPROTO_ICMP / IPPROTO_IP)";
         result["requirements"] = "Requires Administrator / SeDebugPrivilege / elevated security token";
@@ -14,10 +14,10 @@ void register_raw_socket_routes(c_http_router& router) {
             {"GRE_Tunneling", "Generic Routing Encapsulation (IP protocol 47) for stealth multi-hop routing"},
             {"Custom_IP_Protocols", "Arbitrary protocol numbers in IPv4 header to bypass port-based network firewalls"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/raw_socket/detect_icmp_tunneling_patterns", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/raw_socket/detect_icmp_tunneling_patterns", [](const s_http_request& req) {
         json result;
         result["icmp_tunnel_heuristics"] = {
             "1. ICMP Echo payload size > 64 bytes (standard ping is 32 or 64 bytes)",
@@ -25,16 +25,17 @@ void register_raw_socket_routes(c_http_router& router) {
             "3. High Shannon entropy in ICMP payload data indicating encryption or compression",
             "4. Process opening socket handle with SOCK_RAW and IPPROTO_ICMP"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/raw_socket/correlate_with_network_activity", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/raw_socket/correlate_with_network_activity", [](const s_http_request& req) {
         json result;
         result["audit_approach"] = {
             "Correlate handle table entries of type '\\Device\\Afd' with WSK / Winsock API calls in process trace",
             "Verify process token membership in Administrators / Network Configuration Operators"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

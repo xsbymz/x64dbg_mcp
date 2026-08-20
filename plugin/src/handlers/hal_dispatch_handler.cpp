@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <dbghelp.h>
 using json = nlohmann::json;
@@ -9,7 +9,7 @@ namespace handlers {
 void register_hal_dispatch_routes(c_http_router& router) {
 
     // Dump HalDispatchTable entries
-    router.post("/api/hal_dispatch/dump_table", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/hal_dispatch/dump_table", [](const s_http_request& req) {
         json result;
         result["note"] = "HalDispatchTable and HalPrivateDispatchTable are kernel global function pointer arrays. HalDispatchTable[1] = HalQuerySystemInformation, classic EoP overwrite target.";
 
@@ -45,19 +45,16 @@ void register_hal_dispatch_routes(c_http_router& router) {
             // Attempt symbol resolution
             char symName[256] = {};
             duint addr = 0;
-            if (Script::Module::GetMainModuleInfo(nullptr)) {
-                // Use DbgValFromString to resolve kernel symbol if kernel debugging active
-                addr = DbgValFromString(("nt!HalDispatchTable+" + std::to_string(idx * sizeof(void*))).c_str());
-            }
+            addr = DbgValFromString(("nt!HalDispatchTable+" + std::to_string(idx * sizeof(void*))).c_str());
             entry["resolved_address"] = addr;
             entry["suspicious"] = (addr == 0) ? false : false; // would check against module map
             result["hal_dispatch_entries"].push_back(entry);
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Validate HAL dispatch table pointers against known modules
-    router.post("/api/hal_dispatch/validate_pointers", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/hal_dispatch/validate_pointers", [](const s_http_request& req) {
         json result;
         result["validation_method"] = "Cross-reference each HalDispatchTable function pointer against the address range of loaded kernel modules (hal.dll, ntoskrnl.exe). Any pointer outside these ranges indicates overwrite.";
         result["modules_to_check"] = {"hal.dll","ntoskrnl.exe","halmacpi.dll","halacpi.dll"};
@@ -83,11 +80,11 @@ void register_hal_dispatch_routes(c_http_router& router) {
             }
             CloseHandle(hSnap);
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Detect overwrite of HAL dispatch table
-    router.post("/api/hal_dispatch/detect_overwrite", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/hal_dispatch/detect_overwrite", [](const s_http_request& req) {
         json result;
         result["detection_techniques"] = {
             "Compare HAL dispatch pointers against hal.dll export address range",
@@ -100,8 +97,9 @@ void register_hal_dispatch_routes(c_http_router& router) {
             {"pattern","NtTraceControl + HalPrivateDispatchTable overwrite","notes","Used in Windows 8 era exploits"}
         };
         result["note"] = "Attach to live kernel debugging session for actual runtime validation of HAL dispatch entries.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+

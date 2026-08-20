@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_microcode_handler_routes(c_http_router& router) {
-    router.post("/api/microcode/read_version", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/microcode/read_version", [](const s_http_request& req) {
         json result;
         // Force microcode version latch with CPUID(0)
         int info[4]={};
@@ -28,9 +28,9 @@ void register_microcode_handler_routes(c_http_router& router) {
         result["cpu_vendor"] = std::string(vendor);
         result["is_intel"] = (std::string(vendor) == "GenuineIntel");
         result["is_amd"]   = (std::string(vendor) == "AuthenticAMD");
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/microcode/check_patch_level", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/microcode/check_patch_level", [](const s_http_request& req) {
         json result;
         result["known_critical_patches"] = {
             {"Spectre_V1","CVE-2017-5753 — microcode: no direct fix, software mitigations needed"},
@@ -42,9 +42,9 @@ void register_microcode_handler_routes(c_http_router& router) {
             {"MMIO_Stale_Data","CVE-2022-21123/24/25/26 — microcode required for mitigation"}
         };
         result["assessment_method"] = "Compare CPUID family/model/stepping against Intel microcode catalog; check IA32_ARCH_CAPABILITIES bits for hardware fixes";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/microcode/assess_vulnerability_exposure", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/microcode/assess_vulnerability_exposure", [](const s_http_request& req) {
         json result;
         int info[4]={};
         __cpuidex(info,7,0);
@@ -56,7 +56,8 @@ void register_microcode_handler_routes(c_http_router& router) {
             {"ibrs_all",        ((info[3]>>26)&1)==1 ? "IBRS works in all modes" : "IBRS only on kernel entry"}
         };
         result["exploit_relevance"] = "Unpatched CPUs allow cross-process/cross-VM secret leakage. In cloud environments: leak host secrets from co-resident VMs. In malware context: bypass ASLR by leaking kernel addresses via speculative execution.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

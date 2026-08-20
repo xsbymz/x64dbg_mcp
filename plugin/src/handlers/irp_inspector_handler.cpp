@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_irp_inspector_routes(c_http_router& router) {
-    router.post("/api/irp/list_pending", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/irp/list_pending", [](const s_http_request& req) {
         json result;
         result["irp_structure_layout"] = {
             {"Type", "IO_TYPE_IRP (0x06)"},
@@ -19,10 +19,10 @@ void register_irp_inspector_routes(c_http_router& router) {
             {"Cancel", "Boolean flag indicating request cancellation"},
             {"CancelRoutine", "Driver-provided cancellation callback pointer"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/irp/decode_stack_locations", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/irp/decode_stack_locations", [](const s_http_request& req) {
         json result;
         result["io_stack_location_fields"] = {
             {"MajorFunction", "IRP_MJ_* request identifier"},
@@ -34,10 +34,10 @@ void register_irp_inspector_routes(c_http_router& router) {
             {"FileObject", "Associated IO_FILE_OBJECT representation"},
             {"CompletionRoutine", "Driver callback executed during IoCompleteRequest unwind"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/irp/detect_suspicious_completion_routines", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/irp/detect_suspicious_completion_routines", [](const s_http_request& req) {
         json result;
         result["completion_routine_threats"] = {
             "1. Completion routine pointer pointing to unbacked pool memory (rootkit filter)",
@@ -45,7 +45,8 @@ void register_irp_inspector_routes(c_http_router& router) {
             "3. Stalled asynchronous IRPs held indefinitely for covert driver-to-driver IPC channels",
             "4. Missing IoSetCompletionRoutine cleanup resulting in stale kernel callbacks"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

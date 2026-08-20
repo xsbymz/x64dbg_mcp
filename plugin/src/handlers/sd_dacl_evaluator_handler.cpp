@@ -1,12 +1,12 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <sddl.h>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_sd_dacl_evaluator_routes(c_http_router& router) {
-    router.post("/api/sd_eval/evaluate_access_mask", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/sd_eval/evaluate_access_mask", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string sddl = body.value("sddl_string", "D:(A;;GA;;;WD)");
         json result;
@@ -17,10 +17,10 @@ void register_sd_dacl_evaluator_routes(c_http_router& router) {
             {"ACCESS_ALLOWED_ACE", "Type 0x00 (Accumulates granted access rights in RemainingDesiredAccess mask)"},
             {"Mandatory_Integrity", "SYSTEM_MANDATORY_LABEL_ACE (S-1-16-0x1000 Low, 0x2000 Medium, 0x3000 High, 0x4000 System)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/sd_eval/parse_sddl", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/sd_eval/parse_sddl", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string sddl = body.value("sddl", "O:SYG:SYD:(A;;0x1fffff;;;WD)");
         json result;
@@ -36,7 +36,8 @@ void register_sd_dacl_evaluator_routes(c_http_router& router) {
             result["valid"] = false;
             result["error_code"] = (int)GetLastError();
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

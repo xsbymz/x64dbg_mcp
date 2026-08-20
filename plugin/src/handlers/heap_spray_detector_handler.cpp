@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_heap_spray_detector_routes(c_http_router& router) {
-    router.post("/api/heap_spray/scan_all_heaps", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/heap_spray/scan_all_heaps", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -16,10 +16,10 @@ void register_heap_spray_detector_routes(c_http_router& router) {
             {"0x20202020", "Common ASCII/UTF-16 safe pointer target"},
             {"0x0000000020000000", "64-bit low-memory heap spray target"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/heap_spray/detect_spray_patterns", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/heap_spray/detect_spray_patterns", [](const s_http_request& req) {
         json result;
         result["spray_pattern_heuristics"] = {
             "1. Repetitive 4-byte or 8-byte DWORD/QWORD repeating patterns spanning > 1 MB continuous allocations",
@@ -27,13 +27,14 @@ void register_heap_spray_detector_routes(c_http_router& router) {
             "3. ROP gadget chains interleaved with sled padding bytes",
             "4. JavaScript TypedArray / ArrayBuffer spraying (Uint32Array repeating patterns in V8/Chakra heap)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/heap_spray/calculate_shellcode_density", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/heap_spray/calculate_shellcode_density", [](const s_http_request& req) {
         json result;
         result["metric_definition"] = "Ratio of valid x86/x64 instruction sequences vs pure data within large committed heap blocks. High executable instruction density with Shannon entropy between 5.5 and 7.2 indicates sprayed shellcode payload.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

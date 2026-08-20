@@ -52,6 +52,11 @@ struct s_http_response {
         return error(409, message);
     }
 
+    // 403 Forbidden
+    static s_http_response forbidden(const std::string& message = "Forbidden") {
+        return error(403, message);
+    }
+
     // 500 Internal Server Error
     static s_http_response internal_error(const std::string& message) {
         return error(500, message);
@@ -113,6 +118,7 @@ private:
             case 413: return "Payload Too Large";
             case 429: return "Too Many Requests";
             case 500: return "Internal Server Error";
+            case 403: return "Forbidden";
             default:  return "Unknown";
         }
     }

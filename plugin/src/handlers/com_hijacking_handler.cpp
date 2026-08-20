@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_com_hijacking_routes(c_http_router& router) {
-    router.post("/api/com_hijack/scan_hkcu_overrides", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/com_hijack/scan_hkcu_overrides", [](const s_http_request& req) {
         json result;
         result["overrides"] = json::array();
         // Scan HKCU\Software\Classes\CLSID for COM hijacking entries
@@ -44,9 +44,9 @@ void register_com_hijacking_routes(c_http_router& router) {
             "{9BA05972-F6A8-11CF-A442-00A0C90A8F39}","ShellWindows",
             "{C08AFD90-F2A1-11D1-8455-00A0C91F3880}","ShellBrowserWindow"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/com_hijack/detect_dll_substitutions", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/com_hijack/detect_dll_substitutions", [](const s_http_request& req) {
         json result;
         result["detection_logic"] = {
             "For each HKCU override that also has HKCR entry:",
@@ -61,9 +61,9 @@ void register_com_hijacking_routes(c_http_router& router) {
             {{"clsid","{0D43FE01-F093-11CF-8940-00A0C9054228}"},{"name","FileSystemObject"}},
             {{"clsid","{13709620-C279-11CE-A49E-444553540000}"},{"name","Shell Automation Server"}}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/com_hijack/compare_hkcu_vs_hkcr", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/com_hijack/compare_hkcu_vs_hkcr", [](const s_http_request& req) {
         json result;
         result["comparison_methodology"] = {
             "Load list of all HKCU\\Software\\Classes\\CLSID entries",
@@ -72,7 +72,8 @@ void register_com_hijacking_routes(c_http_router& router) {
             "Build diff table: same/different/missing — different = potential hijack"
         };
         result["persistence_longevity"] = "HKCU COM hijacking survives user-level AV scans, requires only user write access (no admin), and persists through reboots. Detection requires explicit HKCU vs HKCR comparison.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

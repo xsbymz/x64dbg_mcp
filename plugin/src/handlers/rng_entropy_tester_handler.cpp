@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_rng_entropy_tester_routes(c_http_router& router) {
-    router.post("/api/rng/collect_samples", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/rng/collect_samples", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD sampleSize = body.value("sample_size", (DWORD)4096);
         json result;
@@ -17,10 +17,10 @@ void register_rng_entropy_tester_routes(c_http_router& router) {
             {"RDSEED", "Intel/AMD physical thermal noise entropy instruction (0x0F 0xC7 /7)"},
             {"C_rand", "Standard C runtime linear congruential generator (Insecure, easily predicted)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/rng/run_nist_tests", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/rng/run_nist_tests", [](const s_http_request& req) {
         json result;
         result["nist_sp800_22_statistical_tests"] = {
             {"Frequency_Monobit_Test", "Verifies proportion of 0s and 1s in bitstream matches theoretical 0.5"},
@@ -29,17 +29,18 @@ void register_rng_entropy_tester_routes(c_http_router& router) {
             {"Longest_Run_Of_Ones", "Measures maximum run of 1s in M-bit blocks"},
             {"Discrete_Fourier_Transform", "Detects periodic features and repeating patterns in the bit sequence"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/rng/detect_weak_prng", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/rng/detect_weak_prng", [](const s_http_request& req) {
         json result;
         result["vulnerable_rng_patterns"] = {
             {"Time_Based_Seed", "srand(time(NULL)) seeded PRNG enables brute-force cracking within seconds"},
             {"Static_Seed", "Hardcoded seed constant resulting in deterministic token / key generation"},
             {"Biased_RDRAND", "Hardware backdoors or broken microcode producing biased entropy output"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

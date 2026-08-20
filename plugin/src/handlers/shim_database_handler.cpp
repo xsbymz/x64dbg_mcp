@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_shim_database_routes(c_http_router& router) {
-    router.post("/api/shim/enumerate_installed_databases", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/shim/enumerate_installed_databases", [](const s_http_request& req) {
         json result;
         result["system_shim_databases"] = {
             {"sysmain.sdb", "%WINDIR%\\AppPatch\\sysmain.sdb (Main application compatibility database)"},
@@ -53,10 +53,10 @@ void register_shim_database_routes(c_http_router& router) {
             }
             RegCloseKey(hKey);
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/shim/parse_sdb_file", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/shim/parse_sdb_file", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string sdbPath = body.value("path", "C:\\Windows\\AppPatch\\sysmain.sdb");
         json result;
@@ -69,10 +69,10 @@ void register_shim_database_routes(c_http_router& router) {
             {"TAG_EXE", "0x7007 (Target executable matching criteria and applied shims)"},
             {"TAG_MATCHING_FILE", "0x7008 (File size, checksum, PE header attributes for activation)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/shim/detect_malicious_shims", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/shim/detect_malicious_shims", [](const s_http_request& req) {
         json result;
         result["dangerous_shim_types"] = {
             {"InjectDLL", "Forces target process to load arbitrary DLL on initialization (Persistence)"},
@@ -82,7 +82,8 @@ void register_shim_database_routes(c_http_router& router) {
             {"FakeVersionLie", "Spoofs OS version to manipulate application logic"}
         };
         result["mitre_technique"] = "T1546.011 (Event Triggered Execution: Application Shimming)";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

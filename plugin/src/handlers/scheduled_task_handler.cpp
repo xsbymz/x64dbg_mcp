@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_scheduled_task_routes(c_http_router& router) {
-    router.post("/api/sched_task/enumerate_all", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/sched_task/enumerate_all", [](const s_http_request& req) {
         json result;
         result["tasks"] = json::array();
         
@@ -27,10 +27,10 @@ void register_scheduled_task_routes(c_http_router& router) {
         
         result["registry_tree_location"] = "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tree";
         result["task_count"] = result["tasks"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/sched_task/parse_task_xml", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/sched_task/parse_task_xml", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string taskName = body.value("task_name", "");
         json result;
@@ -42,10 +42,10 @@ void register_scheduled_task_routes(c_http_router& router) {
             {"Settings", "Hidden, DisallowStartIfOnBatteries, ExecutionTimeLimit"},
             {"Actions", "Exec (Command + Arguments + WorkingDir) or ComHandler (ClassId)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/sched_task/detect_suspicious_tasks", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/sched_task/detect_suspicious_tasks", [](const s_http_request& req) {
         json result;
         result["suspicious_task_indicators"] = {
             "1. Task located in Windows root task folder instead of vendor subfolder",
@@ -54,7 +54,8 @@ void register_scheduled_task_routes(c_http_router& router) {
             "4. Task XML missing Security Descriptor (SD) value in registry TaskCache (T1053.005 task hiding)",
             "5. Task executing from %TEMP%, %APPDATA%, or %PROGRAMDATA% directory"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

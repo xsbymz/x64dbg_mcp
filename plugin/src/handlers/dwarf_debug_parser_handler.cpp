@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_dwarf_debug_parser_routes(c_http_router& router) {
-    router.post("/api/dwarf/parse_sections", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/dwarf/parse_sections", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string moduleName = body.value("module_name", "");
         json result;
@@ -19,10 +19,10 @@ void register_dwarf_debug_parser_routes(c_http_router& router) {
             {".debug_ranges", "Non-contiguous code address ranges for functions and lexical blocks"},
             {".eh_frame", "Call Frame Information (CFI) DWARF unwinding tables used on MinGW/GCC x64"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/dwarf/extract_compilation_units", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/dwarf/extract_compilation_units", [](const s_http_request& req) {
         json result;
         result["cu_header_format"] = {
             {"unit_length", "32-bit (DWARF-32) or 64-bit length of compilation unit"},
@@ -31,7 +31,8 @@ void register_dwarf_debug_parser_routes(c_http_router& router) {
             {"abbrev_offset", "Offset into .debug_abbrev section"},
             {"address_size", "Target architecture pointer size (8 for x64, 4 for x86)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

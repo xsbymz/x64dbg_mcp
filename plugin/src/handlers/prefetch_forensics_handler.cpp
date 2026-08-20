@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
@@ -32,7 +32,7 @@ namespace handlers {
 void register_prefetch_forensics_routes(c_http_router& router) {
 
     // List all prefetch files and parse their execution metadata
-    router.post("/api/prefetch/list_executions", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/prefetch/list_executions", [](const s_http_request& req) -> s_http_response {
         json result;
         result["prefetch_files"] = json::array();
 
@@ -44,8 +44,7 @@ void register_prefetch_forensics_routes(c_http_router& router) {
         HANDLE hFind = FindFirstFileW(pfPath.c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE) {
             result["error"] = "Prefetch directory not found or not accessible";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         std::wstring pfDir2 = std::wstring(pfDir) + L"\\Prefetch\\";
@@ -93,11 +92,11 @@ void register_prefetch_forensics_routes(c_http_router& router) {
         FindClose(hFind);
 
         result["count"] = result["prefetch_files"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Parse a specific prefetch file
-    router.post("/api/prefetch/parse_file", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/prefetch/parse_file", [](const s_http_request& req) -> s_http_response {
         json body;
         try { body = json::parse(req.body); } catch (...) { body = json::object(); }
 
@@ -107,8 +106,7 @@ void register_prefetch_forensics_routes(c_http_router& router) {
 
         if (filename.empty()) {
             result["error"] = "filename required";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         WCHAR pfDir[MAX_PATH] = {};
@@ -120,8 +118,7 @@ void register_prefetch_forensics_routes(c_http_router& router) {
             FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
         if (hFile == INVALID_HANDLE_VALUE) {
             result["error"] = "Cannot open prefetch file";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         DWORD fileSize = GetFileSize(hFile, nullptr);
@@ -133,8 +130,7 @@ void register_prefetch_forensics_routes(c_http_router& router) {
         if (bytesRead < sizeof(PF_HEADER)) {
             result["error"] = "File too small or MAM-compressed (Windows 10+ requires decompression)";
             result["compression_note"] = "Windows 10+ prefetch files use MAM (Xpress Huffman) compression. First 8 bytes: magic 'MAM' + decompressed size. Use RtlDecompressBufferEx with FORMAT_LZNT1.";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         // Check for MAM compression signature
@@ -153,11 +149,11 @@ void register_prefetch_forensics_routes(c_http_router& router) {
             WideCharToMultiByte(CP_UTF8, 0, hdr->ExeName, 60, exeA, sizeof(exeA), nullptr, nullptr);
             result["exe_name"] = std::string(exeA);
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Detect prefetch file deletion gaps in execution timeline
-    router.post("/api/prefetch/detect_deletion_gaps", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/prefetch/detect_deletion_gaps", [](const s_http_request& req) -> s_http_response {
         json result;
         result["detection_method"] = {
             {"description","Prefetch files should form a continuous execution log. Gaps indicate deliberate deletion."},
@@ -191,11 +187,11 @@ void register_prefetch_forensics_routes(c_http_router& router) {
         }
 
         result["anti_forensic_note"] = "Attackers disable prefetcher via reg add HKLM\\SYSTEM\\...\\PrefetchParameters /v EnablePrefetcher /t REG_DWORD /d 0 or delete all .pf files. Both are detectable via this check + USN journal analysis.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 
     // Export full execution timeline
-    router.post("/api/prefetch/export_timeline", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/prefetch/export_timeline", [](const s_http_request& req) -> s_http_response {
         json result;
         result["timeline"] = json::array();
 
@@ -238,8 +234,16 @@ void register_prefetch_forensics_routes(c_http_router& router) {
 
         result["count"] = tl.size();
         result["format"] = "Sorted chronological execution timeline from prefetch last-write timestamps";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result);
     });
 }
 
 } // namespace handlers
+
+
+
+
+
+
+
+

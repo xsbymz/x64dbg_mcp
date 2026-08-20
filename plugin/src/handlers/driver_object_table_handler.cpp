@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_driver_object_table_routes(c_http_router& router) {
-    router.post("/api/driver_obj/enumerate_all", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/driver_obj/enumerate_all", [](const s_http_request& req) {
         json result;
         result["driver_directory"] = "\\Driver";
         result["key_windows_drivers"] = {
@@ -24,10 +24,10 @@ void register_driver_object_table_routes(c_http_router& router) {
             {"DeviceObject", "Head of DEVICE_OBJECT linked list created by this driver"},
             {"MajorFunction", "Array of 28 IRP dispatch routines (IRP_MJ_CREATE through IRP_MJ_PNP)"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/driver_obj/dump_major_function_table", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/driver_obj/dump_major_function_table", [](const s_http_request& req) {
         json result;
         result["major_function_indices"] = {
             {"0x00", "IRP_MJ_CREATE"},
@@ -43,10 +43,10 @@ void register_driver_object_table_routes(c_http_router& router) {
             {"0x12", "IRP_MJ_CLEANUP"},
             {"0x1B", "IRP_MJ_PNP"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/driver_obj/detect_dispatch_hooks", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/driver_obj/detect_dispatch_hooks", [](const s_http_request& req) {
         json result;
         result["dispatch_hook_detection_rules"] = {
             "1. MajorFunction[i] must point inside the address bounds [DriverStart, DriverStart + DriverSize]",
@@ -54,7 +54,8 @@ void register_driver_object_table_routes(c_http_router& router) {
             "3. If MajorFunction[i] points to non-paged pool or unallocated memory, flag inline rootkit hook",
             "4. Check for prologue trampolines (0xE9 JMP or 0x48 0xB8 MOV RAX, imm64; JMP RAX) at dispatch routine entry"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

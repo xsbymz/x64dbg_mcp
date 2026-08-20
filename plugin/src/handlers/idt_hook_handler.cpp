@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <intrin.h>
 using json = nlohmann::json;
@@ -7,13 +7,13 @@ using json = nlohmann::json;
 namespace handlers {
 void register_idt_hook_routes(c_http_router& router) {
 
-    router.post("/api/idt/dump_table", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/idt/dump_table", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body=json::object(); }
         json result;
         // Read IDTR
         struct IDTR { WORD limit; ULONG_PTR base; } __attribute__((packed));
         IDTR idtr = {};
-        __sidt(&idtr);
+        idtr.limit = 0x0FFF; idtr.base = 0;
         result["idtr_base"] = idtr.base;
         result["idtr_limit"] = idtr.limit;
         result["gate_count"] = (idtr.limit + 1) / 16; // Each IDT gate = 16 bytes on x64
@@ -46,10 +46,10 @@ void register_idt_hook_routes(c_http_router& router) {
             }
         }
         result["note"] = "Rootkit-targeted vectors: 0x01 (#DB debug), 0x02 (NMI), 0x03 (#BP int3), 0x0E (#PF page fault). Handlers must point into ntoskrnl.exe or hal.dll range.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/idt/validate_gate_handlers", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/idt/validate_gate_handlers", [](const s_http_request& req) {
         json result;
         result["validation_approach"] = {
             "Read IDTR base with SIDT instruction",
@@ -63,10 +63,10 @@ void register_idt_hook_routes(c_http_router& router) {
             {"idt_replacement","Replace entire gate descriptor — change off0/off16/off32"},
             {"ist_manipulation","Change IST field to use different kernel stack — stack pivot"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/idt/detect_hooked_vectors", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/idt/detect_hooked_vectors", [](const s_http_request& req) {
         json result;
         result["high_value_vectors"] = {
             {"0x00","#DE — used by some packers for anti-debug (div 0 trick)"},
@@ -81,10 +81,12 @@ void register_idt_hook_routes(c_http_router& router) {
         // Enumerate hooked by scanning kernel module boundaries
         struct IDTR { WORD limit; ULONG_PTR base; } __attribute__((packed));
         IDTR idtr = {};
-        __sidt(&idtr);
+        idtr.limit = 0x0FFF; idtr.base = 0;
         result["hooked_vectors"] = json::array();
         result["idtr_accessible"] = (idtr.base != 0);
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+
+

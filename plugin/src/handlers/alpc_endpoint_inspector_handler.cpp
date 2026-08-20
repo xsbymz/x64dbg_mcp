@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_alpc_endpoint_inspector_routes(c_http_router& router) {
-    router.post("/api/alpc_endpoint/enumerate_ports", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/alpc_endpoint/enumerate_ports", [](const s_http_request& req) {
         json result;
         result["well_known_alpc_ports"] = {
             {"\\RPC Control\\epmapper", "RPC Endpoint Mapper"},
@@ -19,10 +19,10 @@ void register_alpc_endpoint_inspector_routes(c_http_router& router) {
             {"ALPC_MESSAGE_VIEW_ATTRIBUTE", "Shared Section View mapping for high-throughput zero-copy data transfer"},
             {"ALPC_MESSAGE_HANDLE_ATTRIBUTE", "Direct kernel object handle passing across IPC boundaries"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/alpc_endpoint/decode_message_headers", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/alpc_endpoint/decode_message_headers", [](const s_http_request& req) {
         json result;
         result["port_message_layout"] = {
             {"DataLength", "16-bit payload length following PORT_MESSAGE header"},
@@ -33,7 +33,8 @@ void register_alpc_endpoint_inspector_routes(c_http_router& router) {
             {"MessageId", "Monotonically increasing message transaction ID"},
             {"CallbackId", "Asynchronous callback tracking ID"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

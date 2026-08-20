@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_dkom_detector_routes(c_http_router& router) {
-    router.post("/api/dkom/detect_hidden_processes", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/dkom/detect_hidden_processes", [](const s_http_request& req) {
         json result;
         result["dkom_technique"] = {
             "Unlink _EPROCESS.ActiveProcessLinks (Flink/Blink) from doubly-linked list",
@@ -49,9 +49,9 @@ void register_dkom_detector_routes(c_http_router& router) {
         }
         result["visible_count"] = result["visible_processes"].size();
         result["cross_check_note"] = "Compare visible PIDs against CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS) — discrepancies indicate DKOM. Full detection requires PspCidTable walk (kernel access needed).";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/dkom/compare_pspcid_vs_activelist", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/dkom/compare_pspcid_vs_activelist", [](const s_http_request& req) {
         json result;
         result["methodology"] = {
             {"step1","Walk ActiveProcessLinks via NtQuerySystemInformation — collect all visible PIDs"},
@@ -74,9 +74,9 @@ void register_dkom_detector_routes(c_http_router& router) {
             }
         }
         result["brute_force_count"] = result["brute_force_pids"].size();
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
-    router.post("/api/dkom/find_unlinked_eprocess", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/dkom/find_unlinked_eprocess", [](const s_http_request& req) {
         json result;
         result["detection_heuristics"] = {
             "Process has valid handles in system handle table but no NtQuerySystemInformation entry",
@@ -102,7 +102,9 @@ void register_dkom_detector_routes(c_http_router& router) {
             }
             free(tcpTable);
         }
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+
+

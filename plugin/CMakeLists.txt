@@ -49,6 +49,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${JANSSON_LIB}
     ws2_32
     dbghelp
+    ntdll
 )
 
 if(TARGET nlohmann_json::nlohmann_json)

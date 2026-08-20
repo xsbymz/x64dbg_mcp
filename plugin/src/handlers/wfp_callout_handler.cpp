@@ -1,5 +1,5 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 #include <fwpmu.h>
 #pragma comment(lib, "fwpuclnt.lib")
@@ -10,7 +10,7 @@ namespace handlers {
 void register_wfp_callout_routes(c_http_router& router) {
 
     // Enumerate all registered WFP callouts
-    router.post("/api/wfp/enumerate_callouts", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/wfp/enumerate_callouts", [](const s_http_request& req) -> s_http_response {
         json result;
         result["callouts"] = json::array();
 
@@ -18,8 +18,7 @@ void register_wfp_callout_routes(c_http_router& router) {
         DWORD dwErr = FwpmEngineOpen0(nullptr, RPC_C_AUTHN_WINNT, nullptr, nullptr, &hEngine);
         if (dwErr != ERROR_SUCCESS) {
             result["error"] = "FwpmEngineOpen0 failed — code: " + std::to_string(dwErr) + " (requires admin)";
-            res.set_content(result.dump(), "application/json");
-            return;
+            return s_http_response::ok(result);
         }
 
         HANDLE hEnum = nullptr;
@@ -79,11 +78,11 @@ void register_wfp_callout_routes(c_http_router& router) {
 
         result["count"] = result["callouts"].size();
         result["note"] = "WFP callouts registered via FwpmCalloutAdd0. Rootkit callouts intercept traffic at FWPM_LAYER_INBOUND_IPPACKET_V4, FWPM_LAYER_STREAM_V4, or FWPM_LAYER_ALE_AUTH_CONNECT_V4 without appearing in netstat.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Validate callout function pointers against known driver modules
-    router.post("/api/wfp/validate_callout_pointers", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/wfp/validate_callout_pointers", [](const s_http_request& req) -> s_http_response {
         json result;
         result["known_benign_providers"] = {
             "Windows Defender (mpssvc)",
@@ -104,11 +103,11 @@ void register_wfp_callout_routes(c_http_router& router) {
             {"FWPM_LAYER_DATAGRAM_DATA_V4","High — intercepts UDP datagrams"},
             {"FWPM_LAYER_INBOUND_TRANSPORT_V4_DISCARD","Low — only sees discarded packets"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
     // Detect hidden/unregistered WFP callouts via kernel inspection
-    router.post("/api/wfp/detect_hidden_callouts", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/wfp/detect_hidden_callouts", [](const s_http_request& req) -> s_http_response {
         json result;
         result["detection_method"] = {
             {"technique1","Compare FwpmCalloutEnum0 results with kernel FWPS callout table (requires kernel debugging)"},
@@ -122,8 +121,10 @@ void register_wfp_callout_routes(c_http_router& router) {
             {"TDL4","NDIS/WFP combination for packet-level C2 hiding"}
         };
         result["note"] = "True hidden callout detection requires kernel-mode access to inspect FwpsCalloutTable in netio.sys data section.";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 
 } // namespace handlers
+
+

@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_module_stomping_routes(c_http_router& router) {
-    router.post("/api/module_stomp/scan_loaded_modules", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/module_stomp/scan_loaded_modules", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         DWORD targetPid = body.value("pid", (DWORD)GetCurrentProcessId());
         json result;
@@ -17,10 +17,10 @@ void register_module_stomping_routes(c_http_router& router) {
             "4. Module remains listed in PEB.InLoadOrderModuleList with valid on-disk file path and Authenticode metadata",
             "5. Bypasses naive memory scanners that only check if RIP is within a loaded module's address range"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/module_stomp/compare_disk_vs_memory", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/module_stomp/compare_disk_vs_memory", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string moduleName = body.value("module_name", "");
         json result;
@@ -32,10 +32,10 @@ void register_module_stomping_routes(c_http_router& router) {
             "4. Filter out benign modifications (relocation fixups, IAT resolution, runtime hooks)",
             "5. Flag wholesale code replacement (>20% byte divergence) as Module Stomping"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/module_stomp/detect_text_section_overwrites", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/module_stomp/detect_text_section_overwrites", [](const s_http_request& req) {
         json result;
         result["stomping_variants"] = {
             {"Classic_Module_Stomping", "Direct overwrite of .text section of legitimate DLL"},
@@ -43,7 +43,8 @@ void register_module_stomping_routes(c_http_router& router) {
             {"GHOST_Hollowing", "Modifying .text before section mapping commit to evade EDR hooks"}
         };
         result["remediation"] = "Re-read original section from disk or compare against ntoskrnl page cache";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_intel_pt_packet_decoder_routes(c_http_router& router) {
-    router.post("/api/intel_pt/decode_packet_stream", [](const httplib::Request& req, httplib::Response& res) {
+    router.post("/api/intel_pt/decode_packet_stream", [](const s_http_request& req) {
         json body; try { body = json::parse(req.body); } catch(...) { body = json::object(); }
         std::string hexData = body.value("raw_packets_hex", "");
         json result;
@@ -21,10 +21,10 @@ void register_intel_pt_packet_decoder_routes(c_http_router& router) {
             {"MODE.Exec", "Execution mode switch (16-bit, 32-bit, 64-bit CS selector change)"},
             {"TSC / TMA", "Time Stamp Counter / Core Crystal Clock timing calibration"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/intel_pt/reconstruct_control_flow", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/intel_pt/reconstruct_control_flow", [](const s_http_request& req) {
         json result;
         result["trace_reconstruction_workflow"] = {
             "1. Locate PSB sync pattern in physical memory buffer",
@@ -34,7 +34,8 @@ void register_intel_pt_packet_decoder_routes(c_http_router& router) {
             "5. On indirect branch (CALL RAX, JMP [RBX], RET), consume target address from TIP packet",
             "6. Yield zero-overhead, 100% complete execution trace without modifying code memory"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+

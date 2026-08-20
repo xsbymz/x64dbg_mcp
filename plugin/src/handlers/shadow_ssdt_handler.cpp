@@ -1,11 +1,11 @@
 #include "plugin.h"
-#include "../http_router.h"
+#include "http/c_http_router.h"
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace handlers {
 void register_shadow_ssdt_routes(c_http_router& router) {
-    router.post("/api/shadow_ssdt/dump_table", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/shadow_ssdt/dump_table", [](const s_http_request& req) {
         json result;
         result["service_descriptor_table_shadow"] = {
             {"Index_0", "nt!KeServiceDescriptorTable (ntoskrnl syscalls)"},
@@ -22,10 +22,10 @@ void register_shadow_ssdt_routes(c_http_router& router) {
             {"0x1042", "NtGdiBitBlt"},
             {"0x1096", "NtUserSendInput"}
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/shadow_ssdt/validate_entries", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/shadow_ssdt/validate_entries", [](const s_http_request& req) {
         json result;
         result["validation_rules"] = {
             "1. Service table pointer must reside in win32k.sys, win32kbase.sys, or win32kfull.sys .text section",
@@ -33,10 +33,10 @@ void register_shadow_ssdt_routes(c_http_router& router) {
             "3. Syscall handler offsets in x64 (stored as compact 32-bit offsets relative to table base) must resolve within win32k modules",
             "4. Table limit (NumberOfServices) should match Windows version build spec (~1000-1300 routines)"
         };
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 
-    router.post("/api/shadow_ssdt/detect_hooks", [](const httplib::Request&, httplib::Response& res) {
+    router.post("/api/shadow_ssdt/detect_hooks", [](const s_http_request& req) {
         json result;
         result["hook_mechanisms"] = {
             {"Table_Pointer_Swap", "Overwriting KeServiceDescriptorTableShadow[1].ServiceTable pointer"},
@@ -44,7 +44,8 @@ void register_shadow_ssdt_routes(c_http_router& router) {
             {"Inline_Prologue_Hook", "Patching beginning of NtUser*/NtGdi* kernel function with JMP to rootkit module"}
         };
         result["impact"] = "Shadow SSDT hooks enable silent keystroke logging, screen scraping, message tampering, and anti-screenshot cloaking";
-        res.set_content(result.dump(), "application/json");
+        return s_http_response::ok(result.dump());;
     });
 }
 } // namespace handlers
+
